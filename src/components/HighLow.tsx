@@ -25,9 +25,9 @@ import MonoLabel from "./ui/MonoLabel";
 import { usePendingSettle } from "@/hooks/usePendingSettle";
 
 /**
- * 하이로우 — 이 단말에서 가장 오래된 판이고, 나머지 화면의 골격이 여기서 나왔다.
+ * 하이로우 — 이 프로젝트에서 가장 오래된 판이고, 나머지 화면의 골격이 여기서 나왔다.
  *
- * 패는 화면에서 가장 큰 요소다. 배급이나 잔액보다 크다. 판에 앉은 사람이
+ * 카드는 화면에서 가장 큰 요소다. 잔액보다 크다. 판에 앉은 사람이
  * 실제로 보고 있는 건 그것뿐이기 때문이다.
  */
 
@@ -369,7 +369,7 @@ export default function HighLow({
                   <span className="text-fg-low">
                     <span className="hidden tab:inline"> </span>
                     {state.hl_bet} 코인을 걸었다.
-                    {(state.hl_bonus ?? 0) > 0 && ` 시설이 ${state.hl_bonus} 코인을 얹었다.`}
+                    {(state.hl_bonus ?? 0) > 0 && ` 보너스 ${state.hl_bonus} 코인이 얹혔습니다.`}
                   </span>
                 </>
               )}

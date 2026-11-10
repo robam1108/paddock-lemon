@@ -21,10 +21,10 @@ import MonoLabel from "./ui/MonoLabel";
 import ResultPopup from "./ui/ResultPopup";
 
 /**
- * 탐색.
+ * 탐험.
  *
- * 수용동·식당·샤워실·작업장·의료동 중 한 곳을 하루 한 번 뒤진다. 무엇이
- * 나올지, 빈손인지 비상식량인지도 해 보기 전엔 모른다.
+ * 라운지·식당·수돗가·공방·휴게실 중 한 곳을 하루 한 번 탐험한다. 무엇이
+ * 나올지, 빈손인지 간식인지도 해 보기 전엔 모른다.
  *
  * 유저마다·날마다 한 곳은 고양이 자리라, 거기를 고르면 물건 대신 고양이를
  * 만난다(CatPopup). 팝업을 닫아도 행동 전이면 다시 열 수 있다.
@@ -87,7 +87,7 @@ export default function Search({
         setCatOpen("meet");
       }
       else setOutcome(result);
-      // 체력·가방이 다 바뀐다.
+      // 에너지·가방이 다 바뀐다.
       onRefresh();
       load();
     },
@@ -116,12 +116,12 @@ export default function Search({
     [supabase, onRefresh],
   );
 
-  // 탐색도 배정 횟수와는 무관하다 — 정지·병동만 막는다.
+  // 탐험도 플레이 횟수와는 무관하다 — 정지·휴식만 막는다.
   const blocked = blockedState(state, false, false);
   const busyAll = busy || working;
   const tester = !!board?.tester;
   const hpCost = board?.hp_cost ?? 15;
-  // 시험 계정은 체력과 하루 한 번 제한 없이 늘 장소를 고른다.
+  // 시험 계정은 에너지와 하루 한 번 제한 없이 늘 장소를 고른다.
   const noHp = !tester && state.hp <= hpCost;
   const usedPlace = board?.used
     ? (SEARCH_PLACES.find((p) => p.id === board.place)?.label ?? board.place)
@@ -137,8 +137,8 @@ export default function Search({
     <div className="flex flex-col gap-2">
       <section className="bg-bg-1 flex flex-col gap-3 p-4">
         <div className="flex items-center justify-between">
-          <MonoLabel>탐색</MonoLabel>
-          <MonoLabel tone="low">체력 -{hpCost}{tester && " · 테스트"}</MonoLabel>
+          <MonoLabel>탐험</MonoLabel>
+          <MonoLabel tone="low">에너지 -{hpCost}{tester && " · 테스트"}</MonoLabel>
         </div>
 
         {error && (
@@ -158,14 +158,14 @@ export default function Search({
           </p>
         ) : noHp ? (
           <p className="scanline-faint mono-13 border-line-soft text-fg-low border border-dashed bg-bg-2 px-3 py-6 text-center">
-            체력이 {hpCost} 이하면 나설 수 없다. 지금 {state.hp}.
+            에너지가 {hpCost} 이하면 탐험할 수 없습니다. 지금 {state.hp}.
           </p>
         ) : usedPlace && !tester ? (
           <div className="flex flex-col gap-1.5">
             <p className="scanline-faint mono-13 border-line-soft text-fg-low border border-dashed bg-bg-2 px-3 py-6 text-center">
               {board?.cat_met
-                ? `오늘은 ${usedPlace}에서 ${cat}${eulReul(cat)} 만났다.`
-                : `오늘은 ${usedPlace}을 돌아봤다.`}
+                ? `오늘은 ${usedPlace}에서 ${cat}${eulReul(cat)} 만났습니다.`
+                : `오늘은 ${usedPlace}을(를) 탐험했습니다.`}
             </p>
             {board?.cat_waiting ? (
               <button
@@ -235,7 +235,7 @@ export default function Search({
 
       {outcome && (
         <ResultPopup
-          title="탐색 결과"
+          title="탐험 결과"
           icon={
             outcome.item ? (
               <div className="flex items-center gap-2.5">

@@ -15,8 +15,8 @@ import { KENO_DRAWING_NOTE, LABEL, kenoMatchLine, kenoPickPrompt } from "@/lib/c
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * 키노 — 벽에 걸린 번호판이다. 시설이 매 회차 열 개를 뽑아 불을 켜고,
- * 수감자는 그 전에 다섯 개를 짚어 둔다. 맞았는지는 불이 다 켜진 뒤에 안다.
+ * 키노 — 벽에 걸린 번호판이다. 서버가 매 회차 열 개를 뽑아 불을 켜고,
+ * 플레이어는 그 전에 다섯 개를 짚어 둔다. 맞았는지는 불이 다 켜진 뒤에 안다.
  *
  * 슬롯머신과 같은 골격을 쓴다: 배당 레일 | 게임 존 | 건 코인.
  * 판정은 전부 서버(play_game)가 끝내 놓고, 여기서는 이미 정해진 결과를
@@ -285,7 +285,7 @@ export default function Keno({
             <span className="body-15 text-fg-mid">
               {done
                 ? kenoMatchLine(hitCount)
-                : `다섯을 짚어 두면 시설이 ${KENO_DRAWS}개를 뽑는다.`}
+                : `다섯 개를 고르면 서버가 ${KENO_DRAWS}개를 뽑습니다.`}
             </span>
             <span className="body-15 text-fg">
               둘만 겹쳐도 {KENO_MULT[2]}배다. 다섯은 아무도 못 봤다.

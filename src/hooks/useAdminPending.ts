@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * 관리자가 확인해야 하는 대기(관계 신청·진정)가 있는지만 본다.
+ * 관리자가 확인해야 하는 대기(친구 신청·피드백)가 있는지만 본다.
  * 건수는 쓰지 않으므로 두 큐를 하나의 총합으로 뭉친다.
  */
 export function useAdminPending(

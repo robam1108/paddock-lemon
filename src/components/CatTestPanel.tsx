@@ -5,12 +5,12 @@ import { SEARCH_PLACES } from "@/lib/labor";
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * 고양이 테스트 패널 — 시험 계정(board.tester)에게만 탐색 탭 아래에 뜬다.
+ * 고양이 테스트 패널 — 시험 계정(board.tester)에게만 탐험 탭 아래에 뜬다.
  *
- * 다섯 곳을 돌며 고양이 자리를 찾거나 보은 3시간을 기다리지 않고 흐름을 끝까지
+ * 다섯 곳을 돌며 고양이 자리를 찾거나 선물 3시간을 기다리지 않고 흐름을 끝까지
  * 확인하려고 둔다(public.cat_test). "죽은 것 셋"은 죽은 새 · 쥐 · 벌레를 하나씩 소지품에
- * 넣는다 — 사용 팝업과 효과를 확인할 때 쓴다. "초기화"는 내 이름 · 친밀도 · 보은 아이템 ·
- * 켜 둔 보은 효과를 지운다.
+ * 넣는다 — 사용 팝업과 효과를 확인할 때 쓴다. "초기화"는 내 이름 · 친밀도 · 선물 아이템 ·
+ * 켜 둔 선물 효과를 지운다.
  */
 
 const ACTIONS: { id: CatTestAction; label: string }[] = [
@@ -18,7 +18,7 @@ const ACTIONS: { id: CatTestAction; label: string }[] = [
   { id: "churu", label: "츄르 +3" },
   { id: "fish", label: "고등어·전갱이·우유 +1" },
   { id: "friend", label: "친밀도 채우기" },
-  { id: "gifts_now", label: "보은 바로 도착" },
+  { id: "gifts_now", label: "선물 바로 도착" },
   { id: "deads", label: "죽은 것 셋" },
   { id: "reset", label: "초기화" },
 ];
@@ -50,7 +50,7 @@ export default function CatTestPanel({
         <dd className="text-fg-hi">{board.churu_given ?? 0}/3</dd>
         <dt className="text-fg-low">가진 츄르</dt>
         <dd className="text-fg-hi">{board.churu_held ?? 0}개</dd>
-        <dt className="text-fg-low">남은 보은</dt>
+        <dt className="text-fg-low">남은 선물</dt>
         <dd className="text-fg-hi">{board.gifts_waiting ?? 0}개 · 소지품 탭에서 받는다</dd>
         <dt className="text-fg-low">죽은 새</dt>
         <dd className="text-fg-hi">남은 {board.bless_left ?? 0}판</dd>
@@ -63,7 +63,7 @@ export default function CatTestPanel({
             type="button"
             disabled={disabled}
             onClick={() => {
-              if (a.id === "reset" && !confirm("내 고양이 이름·친밀도·보은 아이템을 모두 지울까요?")) return;
+              if (a.id === "reset" && !confirm("내 고양이 이름·친밀도·선물 아이템을 모두 지울까요?")) return;
               onAction(a.id);
             }}
             className={`state-fade label-11 border px-2 py-2.5 disabled:opacity-50 ${

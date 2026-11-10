@@ -1,12 +1,9 @@
 /**
  * 화면 문구.
  *
- * 어투는 두 겹이다.
- *  - 시설이 쓴 것(서식 스트립·규칙·상태 표기): 무미건조한 공문. rules.ts 참고.
- *  - 수감자가 얹은 것(게임 안내·판정·막힌 상태): 짧은 반말. 설명하지 않는다.
- *
- * '교도소'라는 단어는 어디에도 쓰지 않는다. 수용번호와 배급 표기로만 드러낸다.
- * 승패에 축하 연출은 없다. 로그에 한 줄 더 붙는 정도의 무심함으로 쓴다.
+ * 어투는 하나다: 짧고 중립적인 UI 문구(존댓말). 상태·판정은 한두 단어로,
+ * 안내는 한 문장으로 쓴다. 승패에 과한 축하 연출은 두지 않는다.
+ * 사이트 이름·고지 문구는 site.ts 에 있다.
  */
 
 import {
@@ -21,117 +18,103 @@ import {
   type PlayerState,
   CAT_BIRD_PLAYS,
   CAT_BIRD_STAKE,
-  CAT_MOUSE_STEAL,
   CAT_FISH_CODES,
   type CatActResult,
   type SearchResult,
-  type StealResult,
 } from "./game";
 import { INSTRUMENTS } from "./gear";
 import { LABOR_JOBS, SEARCH_FINDS, searchTier } from "./labor";
 
-/* ── 시설 쪽 ────────────────────────────────────────────────── */
+/* ── 공통 라벨 ─────────────────────────────────────────────── */
 
-export const FACILITY = "무간교정시설";
-export const FORM_NO = "K-77";
-export const FORM_LINE = `${FACILITY} · 수용자 관리 단말 · 서식 ${FORM_NO}`;
-export const FORM_LINE_SHORT = `${FACILITY} · 서식 ${FORM_NO}`;
-export const WATCH_NOTE = "감시 기록 중";
-
-/** 배급 어투 고정. 권리가 아니라 배급이다. */
 export const LABEL = {
-  no: "NO.",
-  health: "체력",
+  no: "플레이어 번호",
+  health: "에너지",
   coins: "보유 코인",
-  ration: "금일 배정",
-  exit: "단말 종료",
-  admin: "관리자 단말",
-  roster: "단말 접속",
+  ration: "오늘 남은 판",
+  exit: "로그아웃",
+  admin: "관리자",
+  roster: "접속 중",
   bet: "베팅",
   stake: "건 코인",
   pot: "현재 적립금",
   mult: "배율",
   stage: "단계",
-  current: "현재 패",
-  next: "다음 패",
+  current: "현재 카드",
+  next: "다음 카드",
   rules: "규칙",
   feed: "실시간 결과",
   rank: "코인 순위",
-  petitions: "진정함",
-  guide: "안내문",
+  petitions: "피드백",
+  guide: "안내",
 } as const;
 
-/** 진정함 안내 — 게임 판정 이의와는 다른 창구라는 것만 밝힌다. */
+/** 피드백 안내 — 게임 판정 이의와는 다른 창구라는 것만 밝힌다. */
 export const PETITION_NOTE =
-  "게임 판정에는 이의를 받지 않는다. 그 밖의 사정은 여기 적어라.";
+  "게임 판정에 대한 이의는 받지 않습니다. 그 밖의 의견이나 문의를 남겨 주세요.";
 
-/** 체력은 상태가 아니라 관찰 소견으로 적힌다. */
+/** 에너지 상태를 짧은 말로 */
 export function healthNote(hp: number, max: number): string {
-  if (hp <= 0) return "병동 수용";
+  if (hp <= 0) return "휴식 중";
   const ratio = hp / Math.max(1, max);
-  if (ratio >= 0.8) return "이상 없음";
-  if (ratio >= 0.4) return "관찰 필요";
-  return "병동 대기";
+  if (ratio >= 0.8) return "좋음";
+  if (ratio >= 0.4) return "보통";
+  return "부족";
 }
 
-/**
- * 비고 — 서식은 예외 사항만 적는다. 적을 것이 없으면 칸은 '미기재'로 남는다.
- * 시설은 아무 일 없는 사람에 대해 쓸 말이 없다.
- */
+/** 프로필 비고 — 예외 사항만 적는다. 없으면 "없음". */
 export function recordNotes(state: PlayerState): string {
   const notes: string[] = [];
-  if (state.debt > 0) notes.push(`미상환 채무 ${state.debt} 코인`);
+  if (state.debt > 0) notes.push(`미상환 대출 ${state.debt} 코인`);
   if (state.suspended)
-    notes.push(`수감 정지 (해제까지 ${formatDaysLeft(state.suspended_left)})`);
+    notes.push(`이용 정지 (해제까지 ${formatDaysLeft(state.suspended_left)})`);
   if (state.in_ward)
-    notes.push(`병동 수용 (퇴원까지 ${formatDuration(state.ward_left)})`);
-  // 헤더의 금일 배정은 아이템으로 되살린 몫을 따로 구분해 주지 않는다.
-  // if (state.bonus_plays > 0) notes.push(`회복 배정 ${state.bonus_plays}회`);
-  return notes.length > 0 ? notes.join(" · ") : "미기재";
+    notes.push(`휴식 중 (종료까지 ${formatDuration(state.ward_left)})`);
+  return notes.length > 0 ? notes.join(" · ") : "없음";
 }
 
-/* ── 도박판 쪽 ──────────────────────────────────────────────── */
+/* ── 게임 ──────────────────────────────────────────────────── */
 
 export function highLowPrompt(card: number): string {
-  return `다음 패가 ${CARD_LABELS[card]}보다 높은지 · 낮은지 · 같은지 골라라.`;
+  return `다음 카드가 ${CARD_LABELS[card]}보다 높을지 · 낮을지 · 같을지 골라 주세요.`;
 }
 
 export const POT_WARNING =
-  "한 번 틀리면 적립금은 전액 소멸한다. 챙길 거면 미리 챙겨라.";
+  "한 번 틀리면 적립금이 모두 사라집니다. 원할 때 언제든 받을 수 있습니다.";
 
-/** 판정 전, 패를 뽑는 짧은 순간에만 뜨는 자리표시 문구 */
+/** 판정 전, 카드를 뽑는 짧은 순간에만 뜨는 자리표시 문구 */
 export const DEALING_NOTE = "뽑는 중";
 
 export function stageNote(stage: number): string {
-  if (stage <= 1) return "1단계. 배율은 고른 쪽의 적중률로 정해진다 — 어려운 쪽일수록 크다.";
-  if (stage === 2) return "2단계. 같은 확률이라도 배율이 조금 올라간다.";
-  return "3단계. 배율이 가장 좋다. 여기까지 온 값이다.";
+  if (stage <= 1) return "1단계. 배율은 고른 쪽의 적중률로 정해집니다 — 어려운 쪽일수록 큽니다.";
+  if (stage === 2) return "2단계. 같은 확률이라도 배율이 조금 올라갑니다.";
+  return "3단계. 배율이 가장 좋습니다.";
 }
 
 /** 판정 한 줄. 색이 아니라 단어가 결과를 말한다. */
 export const VERDICT = {
-  win: { word: "적중", note: "한 장 더 갈 수 있다." },
-  lose: { word: "실패", note: "적립금은 소멸했다." },
-  hold: { word: "계속", note: "여기서 회수해도 된다." },
-  cleared: { word: "완주", note: "3단계까지 갔다." },
-  cashout: { word: "회수", note: "적립금을 받았다." },
+  win: { word: "적중", note: "한 장 더 갈 수 있습니다." },
+  lose: { word: "실패", note: "적립금이 사라졌습니다." },
+  hold: { word: "계속", note: "여기서 받아도 됩니다." },
+  cleared: { word: "완주", note: "3단계를 모두 통과했습니다." },
+  cashout: { word: "수령", note: "적립금을 받았습니다." },
 } as const;
 
-/* ── 키노 쪽 ────────────────────────────────────────────────── */
+/* ── 키노 ──────────────────────────────────────────────────── */
 
 /** 추첨이 도는 동안. 하이로우의 DEALING_NOTE 와 같은 자리다. */
 export const KENO_DRAWING_NOTE = "추첨 중";
 
 /** 다섯을 다 고르기 전에는 판이 안 열린다. 버튼이 이 말을 대신 한다. */
 export function kenoPickPrompt(left: number): string {
-  return `${left}개 더 골라라`;
+  return `${left}개 더 고르기`;
 }
 
-/** 판이 끝난 뒤 숫자판 아래 한 줄. 0개도 그냥 0개로 적는다. */
+/** 판이 끝난 뒤 숫자판 아래 한 줄. */
 export function kenoMatchLine(match: number): string {
-  if (match === 0) return "하나도 안 맞았다.";
-  if (match >= 5) return "다섯 다 맞았다.";
-  return `${match}개 맞았다.`;
+  if (match === 0) return "맞힌 숫자가 없습니다.";
+  if (match >= 5) return "다섯 개 모두 맞혔습니다.";
+  return `${match}개 맞혔습니다.`;
 }
 
 /* ── 막힌 상태 ──────────────────────────────────────────────────
@@ -153,50 +136,48 @@ export function blockedState(
   if (state.suspended) {
     return {
       why: "suspended",
-      line: "수감 정지 중이다. 풀릴 때까지 판에 못 앉는다.",
+      line: "이용 정지 중입니다. 해제될 때까지 게임을 할 수 없습니다.",
       sub: `해제까지 ${formatDaysLeft(state.suspended_left)}${state.suspend_reason ? ` · 사유: ${state.suspend_reason}` : ""
-        } · 이의는 진정함으로`,
+        } · 문의는 피드백으로`,
     };
   }
   if (state.in_ward) {
     return {
       why: "ward",
-      line: "병동에 있다. 나갈 때까지 판에 못 앉는다.",
-      sub: `퇴원까지 ${formatDuration(state.ward_left)} · 퇴원 시 체력 80 · 그동안 식사 없음`,
+      line: "휴식 중입니다. 휴식이 끝나면 다시 할 수 있습니다.",
+      sub: `종료까지 ${formatDuration(state.ward_left)} · 종료 시 에너지 80`,
     };
   }
   if (outOfPlays) {
     return {
       why: "quota",
-      line: "오늘 몫은 끝났다. 내일 00시에 다시 열린다.",
-      sub: `금일 배정 0/${state.play_limit} · 흑색구역은 산입 대상이 아니다 · 서식 ${FORM_NO} 부칙 03항`,
+      line: "오늘 플레이 횟수를 모두 썼습니다. 자정(KST)에 다시 채워집니다.",
+      sub: `오늘 남은 판 0/${state.play_limit} · Arena 대전은 횟수를 쓰지 않습니다`,
     };
   }
   if (broke) {
     return {
       why: "broke",
-      line: "코인이 없다. 배급은 저절로 늘지 않는다.",
-      sub: `서식 ${FORM_NO} 부칙 10항`,
+      line: "코인이 없습니다. 코인은 자동으로 충전되지 않습니다.",
+      sub: "미션·탐험으로 코인을 모을 수 있습니다",
     };
   }
   return null;
 }
 
 /**
- * 작업장·탐색은 판이 아니라서 "판에 못 앉는다"는 문구가 어색하다. 이 두
+ * 미션·탐험은 게임이 아니라서 "게임을 할 수 없다"는 문구가 어색하다. 이 두
  * 화면은 항상 blockedState(state, false, false) 로만 부르므로 quota/broke
- * 는 여기 오지 않는다 — suspended/ward 두 줄만 도박판 어투를 걷어 낸다.
- * sub(해제·퇴원까지 남은 시간)는 그대로 쓴다.
+ * 는 여기 오지 않는다. sub(남은 시간)는 그대로 쓴다.
  */
 export function nonGameBlockedLine(blocked: Blocked): string {
-  if (blocked.why === "suspended") return "수감 정지 중이다. 풀릴 때까지 할 수 없다.";
-  if (blocked.why === "ward") return "병동에 있다. 나갈 때까지 할 수 없다.";
+  if (blocked.why === "suspended") return "이용 정지 중입니다. 해제될 때까지 할 수 없습니다.";
+  if (blocked.why === "ward") return "휴식 중입니다. 휴식이 끝나면 할 수 있습니다.";
   return blocked.line;
 }
 
 /* ── 기호를 글자로 ──────────────────────────────────────────────
-   반짝이는 아이콘은 이 화면에 없다. 릴에 그려진 그림도 단말에서는
-   두 글자 코드로 찍힌다 — 시설 장비는 그림을 출력하지 못한다.
+   릴의 그림은 두 글자 코드로 찍는다(등폭 글꼴로 정렬을 맞추기 위해).
    ────────────────────────────────────────────────────────────── */
 
 export const SLOT_CODE: Record<string, string> = {
@@ -219,149 +200,38 @@ export const GAME_CODE: Record<string, string> = {
   race: "경마",
 };
 
-/* ── 밀거래 쪽 ──────────────────────────────────────────────── */
+/* ── 일일 미션 · 탐험 ──────────────────────────────────────── */
 
-/** 얼굴 없는 상대의 대사. 3단계로 나뉘고, 버튼을 누를 때마다 다음 것으로 바뀐다. */
-export const SMUGGLE_LINES: {
-  lines: [string, string, string];
-  button: string;
-}[] = [
-    {
-      lines: [
-        "배급소 물건만으로 만족하면 편하지.",
-        "하지만 숨 쉰다고 다 살아있는 게 아니라는 걸 아는 눈치인데.",
-        "원하는 게 따로 있다면....",
-      ],
-      button: "거래한다",
-    },
-    {
-      lines: ["아직 널 손님으로 받을 이유가 없는데.", "", ""],
-      button: "???",
-    },
-    {
-      lines: ["돈은 됐어.", "대신 하나만 확인하지.", "너, 운이 얼마나 좋은지."],
-      button: "승부한다",
-    },
-  ];
-
-/** 라스트 카드가 진행 중일 때 룰 설명 대신 보여주는 대사. */
-export const LASTCARD_RULE_LINES: [string, string, string] = [
-  "우리는 같은 덱을 나눴고,",
-  "같은 순서에 높은 카드를 내는 쪽이 이긴다.",
-  "두 번을 먼저 이기면 좋은 걸 보여주지.",
-];
-
-/** 해금을 걸고 붙었다가 진 뒤, 다시 붙을 수 있게 될 때까지. */
-export const SMUGGLE_UNLOCK_LOST: [string, string, string] = [
-  "그 정도 운으론 어림없어.",
-  "좀 식히고 다시 와라.",
-  "",
-];
-
-/** 해금한 직후 — 그날 상시분만 열려 있다. */
-export const SMUGGLE_WELCOME: [string, string, string] = [
-  "너한테만 보여주는 거다.",
-  "오늘밖에 못 사는 거야.",
-  "",
-];
-
-/** 쿨다운이 끝나, 특별 상품을 걸고 붙을 수 있을 때. */
-export const SMUGGLE_SPECIAL_OFFER: [string, string, string] = [
-  "너한테만 보여주는 거다.",
-  "오늘밖에 못 사는 거야.",
-  "그냥 보여줄 수 없는 물건이 있다.",
-];
-
-export const SMUGGLE_SPECIAL_BUTTON = "운을 시험한다";
-
-/** 상시분 다시 보기 — 목록 아래 버튼과 그 확인 문구. 하루 한 번. */
-export const SMUGGLE_REROLL_BUTTON = "다른 물건 보기";
-export const SMUGGLE_REROLL_CONFIRM = "뒤에 쌓아 둔 걸 꺼내 올까?";
-export const SMUGGLE_REROLL_DONE = "오늘은 더 꺼낼 게 없다.";
-
-/** 특별 상품 승부에서 이긴 날. */
-export const SMUGGLE_SPECIAL_WON: [string, string, string] = [
-  "오늘 운이 좋군.",
-  "",
-  "",
-];
-
-/** 특별 상품 승부에서 진 날. */
-export const SMUGGLE_SPECIAL_LOST: [string, string, string] = [
-  "오늘 보여줄 건 이것뿐이다.",
-  "",
-  "",
-];
-
-/* ── 훔치기 ─────────────────────────────────────────────────── */
-
-/** 훔치기를 지켜보는 쪽. 배급소는 배급관, 밀거래는 밀수꾼이다. */
-export type StealWatcher = "배급관" | "밀수꾼";
-
-/**
- * 훔치기 결과로 띄울 줄들.
- *
- * 둘째 줄의 숫자는 고정이 아니다 — 코인이 모자라면 그만큼 체력 쪽이 커지고,
- * 밀거래에서 값을 치를 수 있었으면 체력은 아예 안 깎인다. 그래서 실제 차감액
- * 으로 조립하고 0인 항목은 뺀다.
- */
-export function stealLines(r: StealResult, who: StealWatcher): string[] {
-  if (r.ok) {
-    return [`${who}이 눈치채지 못했다.`, `${r.item_name} 절도 성공`];
-  }
-
-  const cuts: string[] = [];
-  if (r.hp_cut > 0) cuts.push(`체력 -${r.hp_cut}`);
-  if (r.coin_cut > 0) cuts.push(`코인 -${r.coin_cut}`);
-
-  const lines = [
-    `${who}에게 걸려 전기충격기를 맞았다.`,
-    cuts.length > 0 ? cuts.join(" ") : "빼앗길 것도 없었다",
-  ];
-  // 화면이 왜 통째로 바뀌었는지는 여기서 한 줄로 알려 준다.
-  if (r.to_ward) lines.push("그대로 병동으로 실려 갔다.");
-  return lines;
-}
-
-/* ── 작업장 · 탐색 ──────────────────────────────────────────── */
-
-/**
- * 작업 결과 한 줄. 왜 그만큼이었는지(band) 먼저, 실제 액수는 그 아래.
- * 체력이 소모분과 같으면 애초에 들어갈 수 없으므로(서버 hp <= cost 가드),
- * 작업으로는 쓰러지지 않는다 — 병동 꼬리줄이 없다.
- */
+/** 미션 결과. 왜 그만큼이었는지(band) 먼저, 실제 액수는 그 아래. */
 export function laborLines(r: LaborResult): string[] {
   const lines = [
-    (LABOR_JOBS[r.code]?.lines[r.band] ?? "일을 마쳤다.").replace(
+    (LABOR_JOBS[r.code]?.lines[r.band] ?? "미션을 마쳤습니다.").replace(
       "{who}",
-      r.visitor ?? "어떤이",
+      r.visitor ?? "누군가",
     ),
-    `일당 ${r.pay}코인 · 체력 -${r.hp_cut}`,
+    `보상 ${r.pay}코인 · 에너지 -${r.hp_cut}`,
   ];
   if (r.item) {
     const where =
-      r.code === "fishing" ? "그물에 걸린" : r.code === "pens" ? "축사 구석에서" : "밭 귀퉁이에서";
-    lines.push(`${where} ${r.item.name}${eulReul(r.item.name)} 챙겼다.`);
+      r.code === "fishing" ? "그물에 걸린" : r.code === "pens" ? "목장 구석에서" : "밭 귀퉁이에서";
+    lines.push(`${where} ${r.item.name}${eulReul(r.item.name)} 챙겼습니다.`);
   }
   return lines;
 }
 
-/**
- * 탐색 결과 한 줄. 장소 × 값어치로 고른 한 문장 먼저, 둘째 줄은 얻은 물건
- * 또는(꽝이면) "빈손". 탐색도 같은 이유로 병동 꼬리줄이 없다.
- */
+/** 탐험 결과. 장소 × 값어치로 고른 한 문장 먼저, 둘째 줄은 얻은 물건 또는 "빈손". */
 export function searchLines(r: SearchResult): string[] {
   const tier = searchTier(r);
   return [
-    SEARCH_FINDS[r.place]?.[tier] ?? "무언가를 찾았다.",
-    r.item ? `${r.item.name} · 체력 -${r.hp_cut}` : `빈손 · 체력 -${r.hp_cut}`,
+    SEARCH_FINDS[r.place]?.[tier] ?? "무언가를 찾았습니다.",
+    r.item ? `${r.item.name} · 에너지 -${r.hp_cut}` : `빈손 · 에너지 -${r.hp_cut}`,
   ];
 }
 
-/* ── 탐색 고양이 ────────────────────────────────────────────── */
-/* 고양이가 실제로 할 법한 자리·행동만 쓴다(좁은 틈에서 튀어나오는 식은 안 쓴다).
-   결과마다 문장을 몇 벌 두고 seed 로 고른다 — seed 는 팝업이 열릴 때 한 번 정해
-   (CatPopup · CatGiftPopup) 다시 그려도 문장이 바뀌지 않는다. 모든 결과는 두 줄이다. */
+/* ── 탐험 고양이 ────────────────────────────────────────────── */
+/* 고양이가 실제로 할 법한 자리·행동만 쓴다. 결과마다 문장을 몇 벌 두고 seed 로
+   고른다 — seed 는 팝업이 열릴 때 한 번 정해(CatPopup · CatGiftPopup) 다시 그려도
+   문장이 바뀌지 않는다. 모든 결과는 두 줄이다. */
 
 /** 이름이 아직 없으면 그냥 "고양이". */
 export function catName(name: string | null | undefined): string {
@@ -379,27 +249,27 @@ function pick<T>(list: T[], seed: number): T {
 
 type CatLine = (n: string, ga: string) => string;
 
-/** 장소마다 고양이가 있는 자리. 첫 줄은 이 표에서만 나온다. */
+/** 장소마다 고양이가 있는 자리. 첫 줄은 이 표에서만 나온다. 키는 서버 장소 코드다. */
 const CAT_MEET: Record<string, CatLine[]> = {
   cell: [
-    (n, ga) => `열린 철문 틈으로 들어온 ${n}${ga} 복도 한가운데 앉아 있다.`,
-    (n, ga) => `빈 침상 위에서 ${n}${ga} 동그랗게 몸을 말고 자고 있다.`,
+    (n, ga) => `라운지 소파 한가운데 ${n}${ga} 앉아 있다.`,
+    (n, ga) => `창가 쿠션 위에서 ${n}${ga} 동그랗게 몸을 말고 자고 있다.`,
   ],
   mess: [
-    (n, ga) => `잔반통 옆에서 ${n}${ga} 생선 가시를 뒤적이고 있다.`,
-    (n, ga) => `배식대 밑에 엎드린 ${n}${ga} 떨어진 밥알 냄새를 맡고 있다.`,
+    (n, ga) => `식당 뒷문 옆에서 ${n}${ga} 생선 냄새를 맡고 있다.`,
+    (n, ga) => `테이블 밑에 엎드린 ${n}${ga} 떨어진 빵 부스러기를 살피고 있다.`,
   ],
   shower: [
-    (n, ga) => `배수구 옆에 웅크린 ${n}${ga} 바닥에 고인 물을 핥고 있다.`,
-    (n, ga) => `수건 걸이 밑 마른 자리에서 ${n}${ga} 앞발을 핥으며 세수하고 있다.`,
+    (n, ga) => `수돗가 옆에 웅크린 ${n}${ga} 고인 물을 핥고 있다.`,
+    (n, ga) => `수건 선반 밑 마른 자리에서 ${n}${ga} 앞발로 세수하고 있다.`,
   ],
   works: [
-    (n, ga) => `공구 선반 위에 ${n}${ga} 길게 엎드려 있다.`,
+    (n, ga) => `공방 선반 위에 ${n}${ga} 길게 엎드려 있다.`,
     (n, ga) => `톱밥 더미 위에서 ${n}${ga} 뒹굴다 이쪽을 돌아봤다.`,
   ],
   infirm: [
-    (n, ga) => `창가 라디에이터 위에서 ${n}${ga} 몸을 말고 졸고 있다.`,
-    (n, ga) => `빈 병상 담요 위에서 ${n}${ga} 꾹꾹이를 하고 있다.`,
+    (n, ga) => `휴게실 라디에이터 위에서 ${n}${ga} 몸을 말고 졸고 있다.`,
+    (n, ga) => `빈 소파 담요 위에서 ${n}${ga} 꾹꾹이를 하고 있다.`,
   ],
 };
 
@@ -419,7 +289,7 @@ export function catMeetLines(
   const n = catName(name);
   const first = pick(CAT_MEET[place] ?? CAT_MEET.cell, seed);
   const tail = pick(CAT_MEET_TAIL, seed >> 3);
-  return [first(n, iGa(n)), hpCut > 0 ? `${tail} · 체력 -${hpCut}` : tail];
+  return [first(n, iGa(n)), hpCut > 0 ? `${tail} · 에너지 -${hpCut}` : tail];
 }
 
 const CAT_FED: CatLine[] = [
@@ -444,7 +314,7 @@ const CAT_NO_SNACK: CatLine[] = [
   () => "츄르를 꺼내려 했는데 주머니가 비어 있다.",
 ];
 const CAT_NO_SNACK_TAIL: CatLine[] = [
-  (n, ga) => `실망한 ${n}${ga} 꼬리를 탁 치고 도망갔다.`,
+  (n, ga) => `실망한 ${n}${ga} 꼬리를 탁 치고 가 버렸다.`,
   (n, ga) => `빈손을 킁킁 맡아 본 ${n}${ga} 고개를 돌리고 가 버렸다.`,
 ];
 const CAT_SHY: CatLine[] = [
@@ -509,7 +379,7 @@ export function catNamedLines(name: string): string[] {
   ];
 }
 
-/** 소지품 탭에 보은이 도착했을 때. */
+/** 소지품 탭에 선물이 도착했을 때. */
 export function catGiftLines(name: string | null, itemName: string, seed: number): string[] {
   const n = catName(name);
   return [
@@ -525,28 +395,28 @@ export function catGiftLines(name: string | null, itemName: string, seed: number
   ];
 }
 
-/** 보은을 받거나 버린 뒤. */
+/** 선물을 받거나 돌려준 뒤. */
 export function catGiftResolvedLines(name: string | null, itemName: string, kept: boolean): string[] {
   const n = catName(name);
   return kept
     ? [`${itemName}${eulReul(itemName)} 소지품에 넣었다.`, `${n}${iGa(n)} 뿌듯한 듯 꼬리를 흔든다.`]
     : [
-        `${itemName}${eulReul(itemName)} 멀리 던졌다.`,
-        `${n}${iGa(n)} 마음의 상처를 받았다. 등을 돌리고 가 버렸다.`,
+        `${itemName}${eulReul(itemName)} 정중히 돌려주었다.`,
+        `${n}${iGa(n)} 조금 서운한 듯 등을 돌리고 가 버렸다.`,
       ];
 }
 
-/** 보은을 가장 많이 가진 사람의 특이사항 맨 아래 줄(public.cat_favorite). */
+/** 선물을 가장 많이 가진 사람의 프로필 맨 아래 줄(public.cat_favorite). */
 export const CAT_FAVORITE_LINE = "떠돌이 고양이에게 가장 사랑받는다.";
 
-/** 소지품에서 몰래버리기 한 뒤. */
+/** 소지품에서 몰래 정리한 뒤. */
 export function catTossLines(name: string | null, itemName: string, seed: number): string[] {
   const n = catName(name);
   return [
     pick(
       [
-        `아무도 모르게 ${itemName}${eulReul(itemName)} 치웠다.`,
-        `주위를 살핀 뒤 ${itemName}${eulReul(itemName)} 쓰레기통 깊숙이 밀어 넣었다.`,
+        `아무도 모르게 ${itemName}${eulReul(itemName)} 정리했다.`,
+        `주위를 살핀 뒤 ${itemName}${eulReul(itemName)} 상자 깊숙이 넣어 두었다.`,
       ],
       seed,
     ),
@@ -555,48 +425,49 @@ export function catTossLines(name: string | null, itemName: string, seed: number
 }
 
 /**
- * 보은 사용 팝업(쓰기 전). 두 줄의 묘사만 — 효과는 쓴 뒤(catGiftUsedLines)에 알려 준다.
+ * 선물 사용 팝업(쓰기 전). 두 줄의 묘사만 — 효과는 쓴 뒤(catGiftUsedLines)에 알려 준다.
+ * 코드: dead_bird = 깃털, dead_mouse = 장난감 쥐, dead_bug = 나비 (코드값 변경은 P2).
  */
 export function catGiftUseInfo(code: string, name: string | null): { lines: string[] } {
   const n = catName(name);
   switch (code) {
     case "dead_bird":
       return {
-        lines: ["작은 깃털이 아직 바람결을 기억하고 있다.", `${n}${iGa(n)} 하늘에서 떨어뜨린 운을 물어 왔다.`],
+        lines: ["작은 깃털이 아직 바람결을 기억하고 있다.", `${n}${iGa(n)} 하늘에서 떨어진 운을 물어 왔다.`],
       };
     case "dead_mouse":
       return {
-        lines: ["어둠 속을 누비던 발이 이제는 멈췄다.", "그래도 몰래 다니는 법만은 손끝에 남겨 주었다."],
+        lines: ["실밥이 풀린 장난감 쥐다. 여기저기 끌고 다닌 흔적이 있다.", `${n}${iGa(n)} 숨은 물건을 찾는 법을 알려 주려는 것 같다.`],
       };
     default:
       return {
-        lines: ["다리 하나를 잃고도 끝까지 기어간 벌레다.", `${n}${iGa(n)} 부지런함을 물어다 놓았다.`],
+        lines: ["손등에 내려앉은 나비가 날개를 천천히 접었다 편다.", `${n}${iGa(n)} 부지런함을 물어다 놓았다.`],
       };
   }
 }
 
-/** 보은 효과가 아직 남아 있어 다시 쓸 수 없을 때 사용 팝업에 붙는 줄. */
-export const CAT_GIFT_ACTIVE_LINE = "아직 앞의 기운이 남아 있다.";
+/** 선물 효과가 아직 남아 있어 다시 쓸 수 없을 때 사용 팝업에 붙는 줄. */
+export const CAT_GIFT_ACTIVE_LINE = "앞서 쓴 선물의 효과가 아직 남아 있다.";
 
-/** 보은을 쓴 뒤. */
+/** 선물을 쓴 뒤. */
 export function catGiftUsedLines(code: string): string[] {
   switch (code) {
     case "dead_bird":
       return ["깃털을 가슴께에 꽂았다. 판 위에 바람이 분다.", `앞으로 ${CAT_BIRD_PLAYS}판, 판돈 +${CAT_BIRD_STAKE}`];
     case "dead_mouse":
-      return ["작은 꼬리를 주머니 깊숙이 넣었다. 발소리가 사라진 것 같다.", `다음 훔치기 한 번, +${CAT_MOUSE_STEAL}%`];
+      return ["장난감 쥐를 주머니에 넣었다. 눈이 밝아진 것 같다.", "다음 탐험 한 번, 좋은 물건이 나올 확률이 오른다"];
     default:
-      return ["벌레를 손바닥에 올려 두고 잠시 바라봤다. 어깨에 힘이 들어간다.", "다음 작업 한 번, 후하게 받는다"];
+      return ["나비를 날려 보내고 잠시 바라봤다. 어깨에 힘이 들어간다.", "다음 미션 한 번, 보상이 후해진다"];
   }
 }
 
 /* ── 결과 표기 ──────────────────────────────────────────────── */
 
-/** 판이 끝난 뒤 남기는 한 줄. 느낌표도 이모지도 쓰지 않는다. */
+/** 판이 끝난 뒤 남기는 한 줄. */
 export function settleLine(net: number, payout: number): string {
-  if (net > 0) return `${payout} 코인 회수 · 순이익 +${net}`;
+  if (net > 0) return `${payout} 코인 수령 · 순이익 +${net}`;
   if (net < 0) return `${-net} 코인 손실`;
-  return "본전. 건 코인을 그대로 돌려받았다.";
+  return "본전. 건 코인을 그대로 돌려받았습니다.";
 }
 
 /** "HH:MM" (기기 시각) */
@@ -605,17 +476,9 @@ export function clockText(iso: string): string {
   return [d.getHours(), d.getMinutes()].map((n) => String(n).padStart(2, "0")).join(":");
 }
 
-/** 추석 송편·네잎클로버가 이 판 판돈에 얹혔을 때 결과줄 뒤에 붙는 꼬리. 안 얹혔으면 빈 문자열.
- *  bonus 는 둘의 합이다. 송편이 켜져 있으면 남은 판 수를, 클로버만 켜져 있으면 끝나는 시각을 붙인다. */
-export function bonusTail(
-  bonus: number | undefined,
-  songpyeonLeft: number | undefined,
-  luckEndsAt: string | undefined,
-): string {
+/** 네잎클로버 등이 이 판 판돈에 얹혔을 때 결과줄 뒤에 붙는 꼬리. 안 얹혔으면 빈 문자열. */
+export function bonusTail(bonus: number | undefined, luckEndsAt: string | undefined): string {
   if (!bonus) return "";
-  if (songpyeonLeft !== undefined) {
-    return ` · 송편 +${bonus} (${songpyeonLeft ? `오늘 ${songpyeonLeft}판 남음` : "오늘 송편 끝"})`;
-  }
   if (luckEndsAt) return ` · 클로버 +${bonus} (${clockText(luckEndsAt)}까지)`;
   return ` · 판돈 +${bonus}`;
 }
@@ -644,14 +507,13 @@ export type UsedVia =
   | "together"
   | "gear_on"
   | "gear_off"
-  | "songpyeon"
   | "roast"
   | "mix";
 
 /**
  * 소지품에서 쓰거나 착용한 뒤 팝업에 띄울 문장. before 는 누르기 직전 상태,
  * after 는 RPC 응답이다. lines 는 무엇을 했고 수치가 어떻게 바뀌었는지,
- * notes 는 이번에 붙은 특이사항(과시 문구 · 새 중독/금단 문장)이다.
+ * notes 는 이번에 붙은 프로필 표시 문구다.
  */
 export function usedItemLines(
   item: InventoryItem,
@@ -660,77 +522,67 @@ export function usedItemLines(
   after: PlayerState,
 ): { lines: string[]; notes: string[] } {
   const obj = `${item.name}${eulReul(item.name)}`;
-  const lost = after.hp_lost ?? 0;
-  // use_item 은 서버가 효과 직전 체력(hp_before)을 준다 — 그 사이 자연 감소가 끼어도 맞는다.
+  // use_item 은 서버가 효과 직전 에너지(hp_before)를 준다 — 그 사이 자연 감소가 끼어도 맞는다.
   const hpFrom = via === "use" || via === "together" ? (after.hp_before ?? before.hp) : before.hp;
-  const hpTo = after.hp + lost; // 부작용 전, 효과만 들어간 체력
+  const hpTo = after.hp;
   const healed = hpTo > hpFrom;
   const gained = after.plays_gained ?? 0;
 
   let head: string;
-  if (via === "flex_equip") head = `${obj} 착용했다.`;
-  else if (via === "flex_unequip") head = `${obj} 벗었다.`;
+  if (via === "flex_equip") head = `${obj} 장착했습니다.`;
+  else if (via === "flex_unequip") head = `${obj} 해제했습니다.`;
   else if (via === "gear_on")
-    head = INSTRUMENTS.has(item.code) ? `${obj} 꺼내 불기 시작했다.` : `${obj} 들고 운동을 시작했다.`;
+    head = INSTRUMENTS.has(item.code) ? `${obj} 꺼내 연주를 시작했습니다.` : `${obj} 들고 운동을 시작했습니다.`;
   else if (via === "gear_off")
-    head = INSTRUMENTS.has(item.code) ? `${obj} 내려놓았다.` : `${obj} 내려놓고 운동을 마쳤다.`;
-  else if (via === "songpyeon") head = `${obj} 먹었다.`;
+    head = INSTRUMENTS.has(item.code) ? `${obj} 내려놓았습니다.` : `${obj} 내려놓고 운동을 마쳤습니다.`;
   else if (via === "roast") {
     const roasted = after.items.find((i) => i.code === ROAST_TO[item.code])?.name;
-    head = roasted ? `${obj} 불에 올려 ${roasted}${eulReul(roasted)} 만들었다.` : `${obj} 불에 올려 구웠다.`;
+    head = roasted ? `${obj} 구워 ${roasted}${eulReul(roasted)} 만들었습니다.` : `${obj} 구웠습니다.`;
   }
   else if (via === "mix") {
     // item 은 우유에 섞은 음료(커피 등) 쪽이다.
     const mixed = after.items.find((i) => i.code === MIX_TO[item.code])?.name;
     head = mixed
-      ? `우유에 ${obj} 섞어 ${mixed}${eulReul(mixed)} 만들었다.`
-      : `우유에 ${obj} 섞었다.`;
+      ? `우유에 ${obj} 섞어 ${mixed}${eulReul(mixed)} 만들었습니다.`
+      : `우유에 ${obj} 섞었습니다.`;
   }
   else if (item.kind === "food" || item.kind === "treat")
-    head = healed ? `${obj} 먹어 배가 부르다.` : `${obj} 먹었다.`;
+    head = healed ? `${obj} 먹고 기운이 났습니다.` : `${obj} 먹었습니다.`;
   else if (item.kind === "medicine") {
-    if (item.detox) head = `${obj} 써서 몸이 맑아졌다.`;
-    else if (item.ward_cut > 0) head = `${obj} 써서 병동 시간이 줄었다.`;
-    else if (healed) head = `${obj} 써서 몸이 한결 가볍다.`;
-    else head = `${obj} 썼다.`;
-  } else if (item.kind === "drug") head = `${obj} 투약했다.`;
-  else head = `${obj} 사용했다.`;
+    if (item.ward_cut > 0) head = `${obj} 써서 휴식 시간이 줄었습니다.`;
+    else if (healed) head = `${obj} 써서 에너지가 회복됐습니다.`;
+    else head = `${obj} 썼습니다.`;
+  } else head = `${obj} 사용했습니다.`;
 
   const lines = [head];
-  if (via === "gear_on") lines.push("1시간 동안 이어진다.");
-  if (via === "songpyeon") lines.push("9월 26일까지 효과가 이어진다.");
+  if (via === "gear_on") lines.push("1시간 동안 이어집니다.");
   if (via === "together" && after.with)
     lines.push(
       `${after.with}${waGwa(after.with)} 함께 ${
-        item.kind === "liquor" ? "마셨다" : item.kind === "food" ? "나눠 먹었다" : "했다"
+        item.kind === "liquor" ? "마셨습니다" : item.kind === "food" ? "나눠 먹었습니다" : "했습니다"
       }.`,
     );
   if (via === "together" && after.with && (after.mate_heal || after.mate_plays)) {
     const got: string[] = [];
-    if (after.mate_heal) got.push(`체력 +${after.mate_heal}`);
+    if (after.mate_heal) got.push(`에너지 +${after.mate_heal}`);
     if (after.mate_plays) got.push(`게임 횟수 +${after.mate_plays}`);
     lines.push(`${after.with}도 ${got.join(" · ")}`);
   }
-  if (hpTo !== hpFrom) lines.push(`체력 ${hpFrom} → ${hpTo}`);
+  if (hpTo !== hpFrom) lines.push(`에너지 ${hpFrom} → ${hpTo}`);
   if (gained > 0) lines.push(`게임 횟수 ${after.plays_left - gained} → ${after.plays_left}`);
   if (item.ward_cut > 0 && before.in_ward) {
     lines.push(
       after.in_ward
-        ? `병동 남은 시간 ${formatDuration(before.ward_left)} → ${formatDuration(after.ward_left)}`
-        : "병동에서 나왔다.",
+        ? `휴식 남은 시간 ${formatDuration(before.ward_left)} → ${formatDuration(after.ward_left)}`
+        : "휴식이 끝났습니다.",
     );
   }
   if (item.win_double > 0) lines.push(`다음 승리 판돈 2배 · 남은 ${after.win_double}회`);
-  if (item.detox) lines.push("중독이 풀렸다.");
   if (item.kind === "charm") lines.push(`판돈 +${CLOVER_STAKE} · ${item.flex_hours ?? 6}시간`);
-  if (lost > 0) {
-    lines.push("부작용으로 몸이 축났다.");
-    lines.push(`체력 ${hpTo} → ${after.hp}`);
-  }
   if (via === "flex_equip" || via === "flex_unequip") {
     // 겹쳐 장착한 것은 state_json 이 그 수만큼 줄을 펼쳐 보내므로 줄 수가 곧 칸 수다.
     const worn = (after.flex ?? []).filter((f) => f.expires_at === null).length;
-    lines.push(`착용 ${worn}${after.wear_limit ? ` / ${after.wear_limit}` : ""}`);
+    lines.push(`장착 ${worn}${after.wear_limit ? ` / ${after.wear_limit}` : ""}`);
   }
 
   const notes: string[] = [];
@@ -739,8 +591,6 @@ export function usedItemLines(
       ? undefined
       : after.flex?.find((f) => f.code === item.code)?.text;
   if (flex) notes.push(flex);
-  const had = before.addict_lines ?? [];
-  for (const l of after.addict_lines ?? []) if (!had.includes(l)) notes.push(l);
 
   return { lines, notes };
 }
@@ -755,7 +605,7 @@ export function iGa(word: string): string {
 }
 
 /**
- * 라디오 CH2 속보. 컨디션 단계(0 최상 ~ 4 최악)마다 말투를 몇 벌 두고,
+ * 인사이더 팁. 컨디션 단계(0 최상 ~ 4 최악)마다 말투를 몇 벌 두고,
  * 경주·게이트로 하나를 고른다 — 같은 소식은 다시 켜도 같은 기사로 나온다.
  * 기사는 참이다. 다만 신문답게 돌려 말한다.
  */
@@ -792,8 +642,8 @@ export function raceNews(raceId: number, gate: number, name: string, level: numb
   return pool[(raceId * 7 + gate * 3) % pool.length](name, gate);
 }
 
-/** 라디오 CH2 가 아직 소식을 못 받았을 때 */
-export const RACE_NEWS_EMPTY = "오늘은 더 전할 소식이 없습니다. 이상, 무간 경마 소식이었습니다.";
+/** 인사이더 팁이 아직 소식을 못 받았을 때 */
+export const RACE_NEWS_EMPTY = "오늘은 더 전할 소식이 없습니다. 이상, Paddock 경마 소식이었습니다.";
 export const RACE_NEWS_NONE = "편성된 경주가 없습니다. 다음 출전표가 나오면 다시 전해 드리겠습니다.";
 
 /**

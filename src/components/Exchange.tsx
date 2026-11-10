@@ -11,7 +11,6 @@ import {
   toKoreanError,
   type ItemDef,
   type PlayerState,
-  type StealResult,
   type Trade,
   type TradeItem,
 } from "@/lib/game";
@@ -19,23 +18,21 @@ import TabRail from "./ui/TabRail";
 import ItemMark from "./ui/ItemMark";
 import MonoLabel from "./ui/MonoLabel";
 import BuyConfirm from "./ui/BuyConfirm";
-import Smuggle from "./Smuggle";
+
 import { usePageVisible } from "@/hooks/usePageVisible";
 
 /**
- * 거래소 — 시설이 만든 화면이 아니다.
+ * 상점 · 개인 거래.
  *
- * 누군가 마분지에 품목을 적어 벽에 붙여 둔 판이고, 단말은 그걸 흉내 내고 있다.
- * 그래서 배경이 hue 70(마분지)으로 넘어가고, 라벨만 손글씨로 적혀 있고,
- * 칸이 몇 px씩 어긋나 있다. 서식 번호도 부칙도 여기엔 없다.
+ * 다른 화면과 톤을 나누려고 배경이 hue 70(마분지)으로 넘어가고,
+ * 섹션 제목만 명조로 적는다.
  */
 
-type Tab = "depot" | "trade" | "smuggle";
+type Tab = "depot" | "trade";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "depot", label: "배급소" },
+  { id: "depot", label: "상점" },
   { id: "trade", label: "개인 거래" },
-  { id: "smuggle", label: "밀거래" },
 ];
 
 /** 명조로 찍은 섹션 제목. 이 구역에서만 쓴다. */
@@ -84,7 +81,7 @@ export default function Exchange({
   supabase: SupabaseClient;
   state: PlayerState;
   busy: boolean;
-  /** 구매 성공 여부를 돌려준다 — 성공하면 배급소 수량 표시를 그 자리에서 올린다 */
+  /** 구매 성공 여부를 돌려준다 — 성공하면 상점 수량 표시를 그 자리에서 올린다 */
   onBuyItem: (code: string, qty: number) => Promise<boolean>;
   /** 거래가 성사되면 코인·가방을 다시 읽어야 한다 */
   onRefresh: () => void;
@@ -92,12 +89,9 @@ export default function Exchange({
   const [tab, setTab] = useState<Tab>("depot");
   const visible = usePageVisible();
   const [catalog, setCatalog] = useState<ItemDef[]>([]);
-  // 배급소에서 사기 전 한 번 물어본다. 스냅샷이 아니라 코드만 들고 있다가
-  // 목록에서 다시 찾는다 — 훔치기 뒤에 갱신된 steal_used·bought 가 팝업에도
-  // 그대로 반영되어야 하기 때문이다.
+  // 상점에서 사기 전 한 번 물어본다. 스냅샷이 아니라 코드만 들고 있다가
+  // 목록에서 다시 찾는다 — 갱신된 bought 가 팝업에도 그대로 반영되어야 하기 때문이다.
   const [confirmCode, setConfirmCode] = useState<string | null>(null);
-  // 훔치기 결과. 오면 같은 팝업이 결과 화면으로 바뀐다.
-  const [stealOutcome, setStealOutcome] = useState<StealResult | null>(null);
   const [members, setMembers] = useState<string[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -128,8 +122,7 @@ export default function Exchange({
     if (data) setTrades(data as Trade[]);
   }, [supabase]);
 
-  // 처음 한 번, 그리고 훔치기를 쓴 뒤마다. 훔치기는 steal_used 를 바꾸므로
-  // 목록을 다시 읽어야 버튼이 사라진다.
+  // 처음 한 번, 그리고 구매한 뒤마다 서버 값과 맞춘다.
   const loadCatalog = useCallback(async () => {
     const { data } = await supabase.rpc("shop_catalog");
     if (data) setCatalog(data as ItemDef[]);
@@ -179,7 +172,7 @@ export default function Exchange({
   );
 
   /**
-   * 배급소 구매.
+   * 상점 구매.
    *
    * buy_item 은 state_json 만 돌려주므로 화면의 catalog(오늘 n/3개)는 그대로다.
    * 새로고침해야 숫자가 오르던 게 이 때문이었다. 먼저 손에 든 값을 올려 즉시
@@ -201,29 +194,6 @@ export default function Exchange({
     [onBuyItem, loadCatalog],
   );
 
-  /** 배급소 훔치기. 하루 한 번이라 성공하든 실패하든 목록을 다시 읽는다. */
-  const steal = useCallback(
-    async (code: string) => {
-      setWorking(true);
-      const { data, error: e } = await supabase.rpc("shop_steal", {
-        p_code: code,
-      });
-      setWorking(false);
-
-      if (e || !data) {
-        setError(toKoreanError(e?.message));
-        setConfirmCode(null);
-        return;
-      }
-
-      setError(null);
-      setStealOutcome((data as { steal: StealResult }).steal);
-      // 코인·체력·가방이 다 바뀐다. 시도권도 소모됐다.
-      onRefresh();
-      loadCatalog();
-    },
-    [supabase, onRefresh, loadCatalog],
-  );
 
   const toPayload = (picks: Record<string, number>) =>
     Object.entries(picks)
@@ -234,16 +204,6 @@ export default function Exchange({
     ? (catalog.find((i) => i.code === confirmCode) ?? null)
     : null;
 
-  /**
-   * 훔칠 수 있는 물건인가.
-   * 오늘 시도권이 남아 있고, 병동이 아니고, 아직 품절이 아닐 때만.
-   * 성공률이 가장 높은 게 하필 빈털터리 구간이라, 코인이 모자라도 팝업은
-   * 열어 준다 — 안 그러면 훔칠 이유가 가장 큰 사람이 손도 못 댄다.
-   */
-  const stealable = (it: ItemDef) =>
-    !it.steal_used &&
-    !state.in_ward &&
-    !(it.daily_cap !== undefined && (it.bought ?? 0) >= it.daily_cap);
 
   const candidates = useMemo(
     () => members.filter((name) => name !== state.username),
@@ -300,24 +260,24 @@ export default function Exchange({
         </p>
       )}
 
-      {/* ── 배급소 ── */}
+      {/* ── 상점 ── */}
       {tab === "depot" && (
         <section className="bg-bg-1 flex flex-col gap-2 p-4">
-          <HandLabel>오늘 들어온 것</HandLabel>
+          <HandLabel>오늘의 상품</HandLabel>
           <p className="body-15 text-fg-mid">
-            사람마다 다르게 들어오고, 자정에 갈린다.
+            사람마다 다르게 진열되고, 자정에 바뀝니다.
           </p>
 
           {catalog.length === 0 ? (
             <p className="scanline-faint mono-13 text-fg-low border-line border border-dashed px-3 py-6 text-center">
-              오늘은 들어온 게 없다.
+              오늘은 진열된 상품이 없습니다.
             </p>
           ) : (
             <ul className="flex flex-col gap-1.5">
               {catalog.map((it) => {
                 const capped =
                   it.daily_cap !== undefined && (it.bought ?? 0) >= it.daily_cap;
-                const canSteal = stealable(it);
+
                 return (
                   <li
                     key={it.code}
@@ -349,7 +309,7 @@ export default function Exchange({
                           busyAll ||
                           it.buy_price === null ||
                           capped ||
-                          (state.coins < (it.buy_price ?? 0) && !canSteal)
+                          state.coins < (it.buy_price ?? 0)
                         }
                         onClick={() => setConfirmCode(it.code)}
                         className={`${primary} ml-auto flex w-24 shrink-0 flex-col items-center justify-center gap-0.5 text-center`}
@@ -386,7 +346,7 @@ export default function Exchange({
             <MonoLabel tone="low">상대</MonoLabel>
             {candidates.length === 0 ? (
               <p className="scanline-faint mono-13 text-fg-low border-line border border-dashed px-3 py-4 text-center">
-                거래할 사람이 없다.
+                거래할 수 있는 플레이어가 없습니다.
               </p>
             ) : (
               <div className="flex flex-wrap gap-1">
@@ -456,7 +416,7 @@ export default function Exchange({
                 ? gift
                   ? `${partner}에게 보내기`
                   : `${partner}에게 걸기`
-                : "상대부터 골라라"}
+                : "상대를 먼저 고르세요"}
             </button>
 
             <p className="body-15 text-fg-low">
@@ -700,13 +660,7 @@ export default function Exchange({
         </div>
       )}
 
-      {/* ── 밀거래 ── */}
-      {tab === "smuggle" && (
-        <Smuggle supabase={supabase} state={state} busy={busy} onRefresh={onRefresh} />
-      )}
-
-      {/* 구매 확인 팝업 — 바로 사지지 않게 한 번 물어본다.
-          훔치기를 누르면 같은 팝업이 결과 화면으로 바뀐다. */}
+      {/* 구매 확인 팝업 — 바로 사지지 않게 한 번 물어본다. */}
       {confirmItem && (
         <BuyConfirm
           item={confirmItem}
@@ -714,19 +668,11 @@ export default function Exchange({
           original={confirmItem.list_price ?? undefined}
           busy={busyAll}
           buyDisabled={state.coins < (confirmItem.buy_price ?? 0)}
-          canSteal={stealable(confirmItem)}
-          stealSure={state.steal_sure}
-          who="배급관"
-          outcome={stealOutcome}
           onConfirm={() => {
             buy(confirmItem.code, 1);
             setConfirmCode(null);
           }}
-          onSteal={() => steal(confirmItem.code)}
-          onCancel={() => {
-            setConfirmCode(null);
-            setStealOutcome(null);
-          }}
+          onCancel={() => setConfirmCode(null)}
         />
       )}
     </div>
@@ -764,7 +710,7 @@ function Picker({
       </div>
 
       {tradable.length === 0 ? (
-        <p className="mono-13 text-fg-low px-3 py-1">내놓을 물건이 없다.</p>
+        <p className="mono-13 text-fg-low px-3 py-1">내놓을 물건이 없습니다.</p>
       ) : (
         tradable.map((it) => {
           const n = picked[it.code] ?? 0;

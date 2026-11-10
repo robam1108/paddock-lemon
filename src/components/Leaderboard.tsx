@@ -46,7 +46,7 @@ export default function Leaderboard({
     };
   }, [supabase, refreshKey, visible]);
 
-  // 메달도 트로피도 없다. 시설이 매기는 건 등수가 아니라 순번이다.
+  // 메달도 트로피도 없다. 등수만 담백하게 적는다.
   return (
     <SidePanel title={LABEL.rank} meta="실시간">
       <ul className="flex flex-col gap-2">
@@ -69,7 +69,7 @@ export default function Leaderboard({
               </span>
               <span
                 className={`truncate ${me ? "text-fg-hi" : "text-fg"}`}
-                title={`수용 ${identityOf(r.username).no}`}
+                title={`플레이어 ${identityOf(r.username).no}`}
               >
                 {r.username}
               </span>

@@ -8,9 +8,9 @@ import { catActLines, catMeetLines, catName, catNamedLines, catSeed } from "@/li
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * 탐색 고양이 팝업.
+ * 탐험 고양이 팝업.
  *
- * 고양이 자리를 고른 날 탐색 결과 대신 뜬다. 간식주기 · 쓰다듬기 중 하나만
+ * 고양이 자리를 고른 날 탐험 결과 대신 뜬다. 간식주기 · 쓰다듬기 중 하나만
  * 누를 수 있고(public.cat_act), 누르면 고양이는 떠난다. 쓰다듬기에 처음 성공하면
  * 같은 팝업에서 내가 부를 이름을 적는다(public.cat_set_name — 사람마다 따로).
  *

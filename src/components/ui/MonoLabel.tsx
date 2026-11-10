@@ -1,5 +1,5 @@
 /**
- * 각인된 라벨. 시설이 기계로 찍어 넣은 글자라 자간이 넓고 절대 줄바꿈되지 않는다.
+ * 각인된 라벨. 자간이 넓고 절대 줄바꿈되지 않는다.
  * (nowrap 은 label-11 토큰 안에 박혀 있다.)
  */
 export default function MonoLabel({
@@ -8,7 +8,7 @@ export default function MonoLabel({
   className = "",
 }: {
   children: React.ReactNode;
-  /** dim = 놋쇠 라벨, low = 서식번호 같은 장식성 표기 */
+  /** dim = 놋쇠 라벨, low = 장식성 보조 표기 */
   tone?: "dim" | "low" | "mid";
   className?: string;
 }) {

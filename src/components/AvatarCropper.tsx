@@ -6,10 +6,10 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * 신원표 사진 자르기.
+ * 프로필 사진 자르기.
  *
  * 라이브러리 없이 canvas 하나로 끝낸다 — 한 손가락/드래그로 옮기고, 크기는
- * PC에서 슬라이더로, 모바일에서 두 손가락 핀치로 조절해서, 신원표 칸과 같은
+ * PC에서 슬라이더로, 모바일에서 두 손가락 핀치로 조절해서, 프로필 사진 칸과 같은
  * 132:152 비율로 잘라 낸다. 결과물은 그 비율의 작은 JPEG 한 장이라 Storage에
  * 얹는 부담이 거의 없다.
  *
@@ -229,8 +229,8 @@ export default function AvatarCropper({
 
           <p className="body-15 text-fg-low text-center">
             {isMobile
-              ? "끌어서 위치를 잡고, 두 손가락으로 벌리거나 좁혀 크기를 맞춰라."
-              : "끌어서 위치를 잡고, 슬라이더로 크기를 맞춰라."}
+              ? "끌어서 위치를 잡고, 두 손가락으로 벌리거나 좁혀 크기를 맞춰 주세요."
+              : "끌어서 위치를 잡고, 슬라이더로 크기를 맞춰 주세요."}
           </p>
 
           {error && <p className="mono-13 text-loss">{error}</p>}

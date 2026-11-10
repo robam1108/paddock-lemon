@@ -5,9 +5,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PetitionSummary } from "@/lib/game";
 
 /**
- * 관리자 답변이 달린 내 진정이 있는지만 본다.
+ * 관리자 답변이 달린 내 피드백이 있는지만 본다.
  * 건수는 쓰지 않으므로 유무 하나로 뭉친다.
- * 관리자 단말의 대기 점(useAdminPending)과 대칭이다 — 관리자가 답변하면
+ * 관리자 화면의 대기 점(useAdminPending)과 대칭이다 — 관리자가 답변하면
  * 켜지고, 내가 다시 글을 올리거나(answered→open) 관리자가 종결하면 꺼진다.
  */
 export function usePetitionPending(

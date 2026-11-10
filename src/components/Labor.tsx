@@ -16,13 +16,13 @@ import MonoLabel from "./ui/MonoLabel";
 import ResultPopup from "./ui/ResultPopup";
 
 /**
- * 작업장.
+ * 일일 미션.
  *
- * 하루 3개가 뜨고, 그중 둘까지만 할 수 있다. 근무 시간은 KST 13시부터
- * 19시가 되기 직전까지다. 난이도·보수 범위는 화면 어디에도 없다 — 이름과
+ * 하루 3개가 뜨고, 그중 둘까지만 할 수 있다. 미션 시간은 KST 13시부터
+ * 19시가 되기 직전까지다. 난이도·보상 범위는 화면 어디에도 없다 — 이름과
  * 짧은 설명만 보고 고른다. 얼마를 받을지는 끝내야 안다.
  *
- * 어제 낮 작업을 한 번도 못 했으면 새벽 2시부터 5시 직전까지 야간작업이
+ * 어제 낮 미션을 한 번도 못 했으면 새벽 2시부터 5시 직전까지 야간 미션이
  * 하나 더 열린다(표 3개 중 한 번).
  */
 export default function Labor({
@@ -120,15 +120,15 @@ export default function Labor({
 
       setError(null);
       setOutcome((data as { labor: LaborResult }).labor);
-      // 코인·체력이 다 바뀐다.
+      // 코인·에너지가 다 바뀐다.
       onRefresh();
       load();
     },
     [supabase, onRefresh, load],
   );
 
-  // 작업장은 체력·병동을 다루지만 배정 횟수는 쓰지 않으므로 quota/broke 는
-  // 넘기지 않는다 — 정지·병동만 여기서 막는다.
+  // 미션은 에너지·휴식을 다루지만 플레이 횟수는 쓰지 않으므로 quota/broke 는
+  // 넘기지 않는다 — 정지·휴식만 여기서 막는다.
   const blocked = blockedState(state, false, false);
   const busyAll = busy || working;
   const hpCost = board?.hp_cost ?? 10;
@@ -139,7 +139,7 @@ export default function Labor({
   const closed = !capped && board != null && !board.open;
   const cooling = !capped && !closed && left > 0;
   const night = board?.night ?? null;
-  // 야간작업은 체력을 낮보다 많이 쓴다 — 표시·판정을 따로 한다.
+  // 야간 미션은 에너지를 낮보다 많이 쓴다 — 표시·판정을 따로 한다.
   const nightHpCost = night?.hp_cost ?? 35;
   const nightNoHp = state.hp <= nightHpCost;
 
@@ -147,7 +147,7 @@ export default function Labor({
     <div className="flex flex-col gap-2">
       <section className="bg-bg-1 flex flex-col gap-3 p-4">
         <div className="flex items-center justify-between">
-          <MonoLabel>구내작업</MonoLabel>
+          <MonoLabel>일일 미션</MonoLabel>
           <MonoLabel tone="low">
             오늘 {board?.done ?? 0}/{board?.limit ?? 2}회
           </MonoLabel>
@@ -170,21 +170,21 @@ export default function Labor({
           </p>
         ) : capped ? (
           <p className="scanline-faint mono-13 border-line-soft text-fg-low border border-dashed bg-bg-2 px-3 py-6 text-center">
-            오늘 배정된 작업은 다 끝냈다.
+            오늘 미션을 모두 끝냈습니다.
           </p>
         ) : closed ? (
           <p className="scanline-faint mono-13 border-line-soft text-fg-low border border-dashed bg-bg-2 px-3 py-6 text-center">
-            작업은 {board.open_from}시부터 {board.open_to}시까지만 한다.
+            미션은 {board.open_from}시부터 {board.open_to}시까지 열립니다.
             <br />
             작업 시작까지 {formatDuration(openLeft)}.
           </p>
         ) : cooling ? (
           <p className="scanline-faint mono-13 border-line-soft text-fg-low border border-dashed bg-bg-2 px-3 py-6 text-center">
-            다음 작업까지 {formatDuration(left)} 남았다.
+            다음 미션까지 {formatDuration(left)} 남았습니다.
           </p>
         ) : noHp ? (
           <p className="scanline-faint mono-13 border-line-soft text-fg-low border border-dashed bg-bg-2 px-3 py-6 text-center">
-            체력이 {hpCost} 이하면 들어갈 수 없다. 지금 {state.hp}.
+            에너지가 {hpCost} 이하면 시작할 수 없습니다. 지금 {state.hp}.
           </p>
         ) : (
           <ul className="flex flex-col gap-1.5">
@@ -203,7 +203,7 @@ export default function Labor({
                     <p className="mono-13 text-fg-mid">{job.desc}</p>
                   </div>
                   {j.done ? (
-                    <MonoLabel tone="low">끝냄</MonoLabel>
+                    <MonoLabel tone="low">완료</MonoLabel>
                   ) : (
                     <button
                       type="button"
@@ -211,7 +211,7 @@ export default function Labor({
                       onClick={() => work(j.code)}
                       className="state-fade label-11 border-brass-line w-24 shrink-0 border bg-brass-fill px-4 py-3 text-center text-fg-hi disabled:border-line-soft disabled:bg-surface disabled:text-fg-low"
                     >
-                      체력 -{hpCost}
+                      에너지 -{hpCost}
                     </button>
                   )}
                 </li>
@@ -221,28 +221,28 @@ export default function Labor({
         )}
       </section>
 
-      {/* 어제 낮 작업을 한 번도 못 한 사람에게만 서버가 night 를 내려준다. */}
+      {/* 어제 낮 미션을 한 번도 못 한 사람에게만 서버가 night 를 내려준다. */}
       {night && !blocked && (
         <section className="bg-bg-1 flex flex-col gap-3 p-4">
           <div className="flex items-center justify-between">
-            <MonoLabel>야간작업</MonoLabel>
+            <MonoLabel>야간 미션</MonoLabel>
             <MonoLabel tone="low">오늘 밤 {night.done ? 1 : 0}/1회</MonoLabel>
           </div>
 
           {night.done ? (
             <p className="scanline-faint mono-13 border-line-soft text-fg-low border border-dashed bg-bg-2 px-3 py-6 text-center">
-              오늘 밤 몫은 끝냈다.
+              오늘 밤 미션을 끝냈습니다.
             </p>
           ) : !night.open ? (
             <p className="scanline-faint mono-13 border-line-soft text-fg-low border border-dashed bg-bg-2 px-3 py-6 text-center">
-              어제 일을 못 한 몫으로 새벽 {night.open_from}시부터 {night.open_to}시까지
-              한 번 할 수 있다.
+              어제 미션을 못 한 대신 새벽 {night.open_from}시부터 {night.open_to}시까지
+              한 번 할 수 있습니다.
               <br />
               시작까지 {formatDuration(nightLeft)}.
             </p>
           ) : nightNoHp ? (
             <p className="scanline-faint mono-13 border-line-soft text-fg-low border border-dashed bg-bg-2 px-3 py-6 text-center">
-              체력이 {nightHpCost} 이하면 들어갈 수 없다. 지금 {state.hp}.
+              에너지가 {nightHpCost} 이하면 시작할 수 없습니다. 지금 {state.hp}.
             </p>
           ) : (
             <ul className="flex flex-col gap-1.5">
@@ -264,7 +264,7 @@ export default function Labor({
                       onClick={() => work(j.code, true)}
                       className="state-fade label-11 border-brass-line w-24 shrink-0 border bg-brass-fill px-4 py-3 text-center text-fg-hi disabled:border-line-soft disabled:bg-surface disabled:text-fg-low"
                     >
-                      체력 -{nightHpCost}
+                      에너지 -{nightHpCost}
                     </button>
                   </li>
                 );

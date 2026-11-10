@@ -20,7 +20,7 @@ export default function SidePanel({
   children,
 }: {
   title: string;
-  /** 우측 끝의 부속 표기 — "부칙 8항", "최근 5건", "실시간" */
+  /** 우측 끝의 부속 표기 — "12항", "최근 5건", "실시간" */
   meta?: string;
   /** 본문 고정 높이(px). 넘치면 안에서 스크롤한다. */
   maxHeight?: number;

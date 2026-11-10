@@ -110,7 +110,7 @@ function GuideBox({
               <li className="mono-13 text-fg-low py-2">불러오는 중…</li>
             )}
             {!roomsLoading && rooms.length === 0 && (
-              <li className="mono-13 text-fg-low py-2">등재된 배정 없음</li>
+              <li className="mono-13 text-fg-low py-2">배정된 플레이어 없음</li>
             )}
             {rooms.map((r) => {
               const mine = r.members.includes(username);
@@ -149,14 +149,14 @@ const LAYOUT_SECTION =
 const OVERLAY_GAP = "2rem";
 
 /**
- * 안내문 — 세계관·시설 구조도·방 배치도·일정표를 탭으로 묶어 보여주는 문서
+ * 안내 — 소개·장소 안내·룸 배치·일정을 탭으로 묶어 보여주는 문서
  * 팝업. Record.tsx 의 관계 기록 팝업과 같은 오버레이 뼈대를 쓴다.
  *
  * 네 탭 중 방 배치도만 문구 아래에 실제 명단이 붙는다. 나머지 셋은 정적이다.
  *
  * 탭마다 문단 수·사진 유무·명단 길이가 달라 박스 높이가 들쭉날쭉하다.
  * 그대로 수직 중앙 정렬하면 탭을 바꿀 때마다 박스가 위아래로 흔들리므로,
- * "시설 구조도" 탭 기준으로만 박스의 시작(top) 위치를 고정한다 — 화면
+ * "장소 안내" 탭 기준으로만 박스의 시작(top) 위치를 고정한다 — 화면
  * 밖에 숨겨 둔 구조도 탭 복제본의 높이를 재서 그 위치를 계산하고,
  * 실제 박스에는 그 위치를 만드는 marginTop 만 준다. 높이 자체는 탭마다
  * 계속 다르게 두어(짧은 탭은 여백, 긴 탭은 기존처럼 스크롤) 시작 위치만
@@ -197,7 +197,7 @@ export default function GuidePopup({
       className="bg-bg-0/80 fixed inset-0 z-50 grid grid-cols-[minmax(0,28rem)] items-start justify-center overflow-y-auto p-4"
       onClick={onClose}
     >
-      {/* 시설 구조도 탭이 혼자 렌더링됐을 때의 높이만 재는 숨은 복제본.
+      {/* 장소 안내 탭이 혼자 렌더링됐을 때의 높이만 재는 숨은 복제본.
           실제 박스와 같은 그리드 칸에 겹쳐 둬서 폭 계산이 항상 동일하다. */}
       <div
         aria-hidden

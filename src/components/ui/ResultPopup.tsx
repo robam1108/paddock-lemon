@@ -4,9 +4,9 @@ import { createPortal } from "react-dom";
 import MonoLabel from "./MonoLabel";
 
 /**
- * 결과 팝업 — 작업장 · 탐색이 함께 쓴다.
+ * 결과 팝업 — 일일 미션 · 탐험이 함께 쓴다.
  *
- * BuyConfirm(배급소·밀거래)의 결과 화면과 같은 뼈대(포털 · 헤더 ·
+ * BuyConfirm(상점 구매 확인)과 같은 뼈대(포털 · 헤더 ·
  * 첫 줄만 밝게, 나머지는 톤 색 · 닫기 하나)를 확인 단계 없이 결과만
  * 보여주는 쪽으로 뽑아냈다. 산다/훔친다처럼 구매 흐름에 얽힌 것이
  * 없어 여기엔 확인 버튼이 없다 — 결과가 곧 화면이다.
@@ -19,10 +19,10 @@ export default function ResultPopup({
   onClose,
 }: {
   title: string;
-  /** 탐색에서 얻은 물건처럼, 문장 위에 붙일 것(ItemMark + 이름 등) */
+  /** 탐험에서 얻은 물건처럼, 문장 위에 붙일 것(ItemMark + 이름 등) */
   icon?: React.ReactNode;
   lines: string[];
-  /** ok = 놋쇠(성과). 지금은 작업·탐색 둘 다 손실이 없어 항상 ok 지만,
+  /** ok = 놋쇠(성과). 지금은 미션·탐험 둘 다 손실이 없어 항상 ok 지만,
    *  나중에 실패가 생길 경우를 대비해 남겨 둔다. */
   tone?: "ok" | "bad";
   onClose: () => void;

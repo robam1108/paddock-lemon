@@ -8,9 +8,6 @@ import {
   ITEM_GRADE_LABEL,
   ADMIN_REASON_LABEL,
   LEDGER_KIND_LABEL,
-  LIVESTOCK_PASS,
-  LIVESTOCK_CHAIN_MAX,
-  TITLE_PASS,
   rouletteChoiceLabel,
   SLOT_SYMBOLS,
   formatDaysLeft,
@@ -19,7 +16,6 @@ import {
   isUsable,
   itemAction,
   itemEffect,
-  needsLighter,
   MILK,
   MIX_NAME,
   MIX_TO,
@@ -57,11 +53,11 @@ type RelationEntry = {
   created_at: string;
   reject_reason: string | null;
   mine: boolean;
-  kind: "user" | "livestock" | "title";
+  kind: "user";
   expires_in: number | null;
 };
 
-/** 신원표 "등재된 관계" 칸이 쓰는 축약형 — 승인된 관계만, 상대 이름 기준으로 정리한다. */
+/** 프로필 "친구" 칸이 쓰는 축약형 — 승인된 관계만, 상대 이름 기준으로 정리한다. */
 type RelationRow = { id: number; other: string; body: string };
 
 function approvedRelationsFor(
@@ -81,7 +77,7 @@ function approvedRelationsFor(
     }));
 }
 
-/** inmate_roster() 가 주는 한 줄 — 관계 탭 목록과 그 아래 상세 보기가 공유한다. */
+/** 플레이어 명단 한 줄 — 친구 탭 목록과 그 아래 상세 보기가 공유한다. */
 type RosterEntry = {
   username: string;
   avatar_path: string | null;
@@ -95,12 +91,12 @@ type RosterEntry = {
   height_cm: number | null;
   weight_kg: number | null;
   bio: string | null;
-  livestock_consent: boolean | null;
   /** 문장만 담긴 배열. 만료 시각·아이템 코드는 절대 안 온다(본인 것만 state.flex 에 있다) */
   flex: string[];
 };
 import { identityOf } from "@/lib/identity";
-import { FACILITY, VERDICT, healthNote, recordNotes } from "@/lib/copy";
+import { VERDICT, healthNote, recordNotes } from "@/lib/copy";
+import { SITE_NAME } from "@/lib/site";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import TabRail from "./ui/TabRail";
 import Panel from "./ui/Panel";
@@ -109,29 +105,26 @@ import MonoLabel from "./ui/MonoLabel";
 import AvatarCropper from "./AvatarCropper";
 
 /**
- * 수감기록 — 시설이 만든 문서다.
+ * 프로필 — 내 정보 · 소지품 · 친구 · 기록.
  *
- * 이 구역만 색상각이 없다(chroma 0). 색이 있으면 누군가 손을 댔다는 뜻이고,
- * 이 서류에는 아무도 손대지 않았다. 놋쇠 토큰까지 무채색으로 덮여 있어서
- * 여기서는 강조색을 쓰려고 해도 나오지 않는다.
- *
- * 전부 등폭이고, 배치는 표다. 읽기 좋게 만들 이유가 시설에는 없다.
+ * 이 구역만 색상각이 없다(chroma 0). 놋쇠 토큰까지 무채색으로 덮여 있어서
+ * 여기서는 강조색이 나오지 않는다. 전부 등폭이고, 배치는 표다.
  */
 
 type Tab = "profile" | "items" | "roster" | "history";
-/** 수감목록 탭 안의 하위 카테고리 — 관계 · 수감자 목록. */
+/** 친구 탭 안의 하위 카테고리 — 친구 피드 · 플레이어 목록. */
 type RosterSub = "relations" | "list";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "profile", label: "신상" },
+  { id: "profile", label: "내 정보" },
   { id: "items", label: "소지품" },
-  { id: "roster", label: "수감목록" },
+  { id: "roster", label: "친구" },
   { id: "history", label: "기록" },
 ];
 
 const ROSTER_SUBS: { id: RosterSub; label: string }[] = [
-  { id: "relations", label: "관계" },
-  { id: "list", label: "수감자 목록" },
+  { id: "relations", label: "친구 피드" },
+  { id: "list", label: "플레이어 목록" },
 ];
 
 const inputField =
@@ -144,16 +137,16 @@ function gameTitle(title: string): string {
   return title === "하이로우 사다리" ? "하이로우" : title;
 }
 
-/** 기록 목록 둘째 줄 — 작업은 일당 한 줄, 탐색은 장소 한 줄. */
+/** 기록 목록 둘째 줄 — 미션은 보상 한 줄, 탐험은 장소 한 줄. */
 function laborLine(detail: Record<string, unknown>): string | null {
   const band = detail?.band as string | undefined;
   const bandLabel =
-    band === "low" ? "박하게" : band === "high" ? "후하게" : band === "mid" ? "보통으로" : null;
-  return bandLabel ? `일당을 ${bandLabel} 받았다` : null;
+    band === "low" ? "적게" : band === "high" ? "많이" : band === "mid" ? "보통으로" : null;
+  return bandLabel ? `보상을 ${bandLabel} 받았습니다` : null;
 }
 
 /**
- * 관리자가 주거나 거둔 줄의 둘째 줄 — "[이벤트] 추석 특별 배급".
+ * 관리자가 주거나 거둔 줄의 둘째 줄 — "[이벤트] 주말 보너스".
  * 분류도 메모도 없으면(SQL Editor 에서 사유 없이 부른 경우) 아무것도 적지 않는다.
  */
 function adminLine(detail: Record<string, unknown>): string | null {
@@ -170,9 +163,9 @@ function searchLine(detail: Record<string, unknown>): string | null {
   const miss = detail?.miss as boolean | undefined;
   const placeLabel = place ? (SEARCH_PLACES.find((p) => p.id === place)?.label ?? place) : null;
   if (!placeLabel) return null;
-  if (detail?.cat) return `${placeLabel}에서 고양이를 만났다`;
-  if (miss) return `${placeLabel}을 뒤졌지만 빈손이었다`;
-  return ration ? `${placeLabel}에서 비상식량을 찾았다` : `${placeLabel}을 뒤졌다`;
+  if (detail?.cat) return `${placeLabel}에서 고양이를 만났습니다`;
+  if (miss) return `${placeLabel} 탐험 · 빈손`;
+  return ration ? `${placeLabel}에서 간식을 찾았습니다` : `${placeLabel} 탐험`;
 }
 
 /**
@@ -273,14 +266,12 @@ function Cell({
 }
 
 /**
- * 신원표 한 장 — 신상 탭과 관계 탭의 상세 보기가 함께 쓰는 표현 컴포넌트.
- * `photo`/`footer` 를 넘기지 않으면(= 남의 신상을 볼 때) 사진 교체·수정
- * 버튼이 저절로 빠진다. 체력 관리 지침은 이 컴포넌트가 그리지 않는다 —
- * 자기 신상일 때만 호출한 쪽이 바로 아래에 따로 붙인다.
+ * 프로필 카드 — 내 정보 탭과 친구 탭의 상세 보기가 함께 쓰는 표현 컴포넌트.
+ * `photo`/`footer` 를 넘기지 않으면(= 남의 프로필을 볼 때) 사진 교체·수정
+ * 버튼이 저절로 빠진다.
  */
 function ProfileCard({
   no,
-  term,
   username,
   avatarUrl,
   cell,
@@ -292,7 +283,6 @@ function ProfileCard({
   hpMax,
   bio,
   flex,
-  livestockConsent,
   relations,
   notes,
   photo,
@@ -300,7 +290,6 @@ function ProfileCard({
   catLoved,
 }: {
   no: string;
-  term: string;
   username: string;
   avatarUrl: string | null;
   cell: string | null;
@@ -311,33 +300,31 @@ function ProfileCard({
   hp: number;
   hpMax: number;
   bio: string | null;
-  /** 과시 상태 문장들(중독 낙인 포함). 없으면 빈 배열.
-   *  `time` 은 본인 신상에서만 채워 넣는다 — 소모형 과시 상태의 남은 시간은
-   *  본인에게만 보이고, 남의 신상에는 문장만(시간 없이) 나간다. */
+  /** 프로필 표시 문장들. 없으면 빈 배열.
+   *  `time` 은 본인 프로필에서만 채워 넣는다 — 소모형 표시의 남은 시간은
+   *  본인에게만 보이고, 남의 프로필에는 문장만(시간 없이) 나간다. */
   flex: { text: string; time?: string }[];
-  /** 가축권 동의 여부. 아직 기재 전이면 null */
-  livestockConsent: boolean | null;
-  /** 관리자가 승인한(등재된) 관계만. 신청 중·반려는 여기 넣지 않는다. */
+  /** 관리자가 승인한 관계만. 신청 중·반려는 여기 넣지 않는다. */
   relations: RelationRow[];
-  /** 시설이 붙인 관찰 표시(recordNotes). 남의 신상에는 넘기지 않는다. */
+  /** 상태 표시(recordNotes). 남의 프로필에는 넘기지 않는다. */
   notes?: string;
-  /** 내 신상일 때만: 사진 칸에 교체 버튼을 끼운다. 없으면 정적 사진 칸. */
+  /** 내 프로필일 때만: 사진 칸에 교체 버튼을 끼운다. 없으면 정적 사진 칸. */
   photo?: React.ReactNode;
-  /** 내 신상일 때만: 비고 칸 아래 우측에 붙는 '수정' 버튼. */
+  /** 내 프로필일 때만: 소개 칸 아래 우측에 붙는 '수정' 버튼. */
   footer?: React.ReactNode;
-  /** 떠돌이 고양이에게 가장 사랑받는 사람이면 특이사항 맨 아래에 한 줄을 더한다. */
+  /** 떠돌이 고양이에게 가장 사랑받는 사람이면 상태 맨 아래에 한 줄을 더한다. */
   catLoved?: boolean;
 }) {
   const flexLines = catLoved ? [...flex, { text: CAT_FAVORITE_LINE }] : flex;
   const heightWeight =
     heightCm != null && weightKg != null ? `${heightCm} / ${weightKg}` : "-";
-  const extraNote = notes && notes !== "미기재" ? notes : null;
+  const extraNote = notes && notes !== "없음" ? notes : null;
 
   return (
     <div className="grid grid-cols-1 gap-2 tab:grid-cols-[220px_minmax(0,1fr)]">
-      {/* ── 신원표 카드 ── */}
+      {/* ── 프로필 카드 ── */}
       <Panel className="flex flex-col gap-3 text-center">
-        <MonoLabel tone="low">{FACILITY} 신원표</MonoLabel>
+        <MonoLabel tone="low">{SITE_NAME} 프로필</MonoLabel>
 
         {photo ?? (
           <div className="scanline-faint border-line relative mx-auto flex h-[152px] w-[132px] items-center justify-center overflow-hidden border border-dashed bg-bg-0">
@@ -350,7 +337,7 @@ function ProfileCard({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <span className="mono-13 text-fg-low">사진 자리</span>
+              <span className="mono-13 text-fg-low">사진 없음</span>
             )}
           </div>
         )}
@@ -360,15 +347,14 @@ function ProfileCard({
           <span className="title-19 text-fg-hi truncate">{username}</span>
         </div>
 
-        {/* 무엇을 했나 → 얼마나 사나 → 어디 있나. 실제 수용기록표의 순서다. */}
+        {/* 상태 메시지 → 룸 */}
         <div className="border-line-soft mt-auto flex flex-col gap-1 border-t pt-3">
-          {crime && <span className="mono-13 text-fg-mid truncate">{crime}</span>}
-          <span className="mono-13 text-fg-mid">{term}</span>
-          {cell && <span className="mono-13 text-fg-mid">{cell}</span>}
+          <span className="mono-13 text-fg-mid truncate">{crime || "상태 메시지 없음"}</span>
+          {cell && <span className="mono-13 text-fg-mid">룸 {cell}</span>}
         </div>
       </Panel>
 
-      {/* ── 나이 · 키/체중 · 소견 · 비고 ── */}
+      {/* ── 나이 · 키/체중 · 컨디션 · 소개 ── */}
       <div className="flex flex-col gap-2">
         <div className="border-line-soft grid grid-cols-2 gap-px border bg-line-soft">
           <Cell label="나이">
@@ -381,7 +367,7 @@ function ProfileCard({
             )}
           </Cell>
           <Cell label="키 / 체중">{heightWeight}</Cell>
-          <Cell label="소견" quiet>
+          <Cell label="컨디션" quiet>
             <span className="body-15 text-fg">{healthNote(hp, hpMax)}</span>
             {extraNote && (
               <span className="body-15 text-fg-low mt-0.5 block">
@@ -389,23 +375,14 @@ function ProfileCard({
               </span>
             )}
           </Cell>
-          <Cell label="가축권 동의" quiet>
-            {livestockConsent === null ? (
-              "미기재"
-            ) : livestockConsent ? (
-              "동의"
-            ) : (
-              <span className="text-loss">비동의</span>
-            )}
-          </Cell>
-          <Cell label="비고" wide quiet>
+          <Cell label="소개" wide quiet>
             {bio ? (
               <span className="whitespace-pre-line break-words">{bio}</span>
             ) : (
-              "미기재"
+              "없음"
             )}
           </Cell>
-          <Cell label="특이사항" wide quiet>
+          <Cell label="상태" wide quiet>
             {flexLines.length === 0 ? (
               "없음"
             ) : (
@@ -423,7 +400,7 @@ function ProfileCard({
               </ul>
             )}
           </Cell>
-          <Cell label="등재된 관계" wide quiet>
+          <Cell label="친구" wide quiet>
             {relations.length === 0 ? (
               "없음"
             ) : (
@@ -469,24 +446,23 @@ export default function Record({
   refreshKey: number;
   onUse: (code: string) => void;
   onSell: (code: string, qty: number) => void;
-  /** 장착형 과시품 해제 */
+  /** 장착형 꾸미기 해제 */
   onUnequip: (code: string) => void;
   /** 라이터로 생고구마를 굽는다 */
   onRoast: (code: string) => void;
   /** 우유에 커피·아이스 커피·루이보스티 중 하나(drink)를 섞는다 */
   onMix: (drink: string) => void;
-  /** 가축 지목권을 쓴 뒤 코인·소지품을 다시 읽는다 */
+  /** 고양이 선물을 쓰거나 정리한 뒤 코인·소지품을 다시 읽는다 */
   onRefresh: () => Promise<void>;
   /** 사진 경로를 프로필에 반영한다 (실제 업로드는 이 컴포넌트가 직접 한다) */
   onAvatarChange: (path: string | null) => Promise<boolean>;
-  /** 죄목·나이·키/체중·비고·가축권 동의 여부를 프로필에 반영한다 */
+  /** 상태 메시지·나이·키/체중·소개를 프로필에 반영한다 */
   onDetailsChange: (args: {
     p_crime: string;
     p_age: number | null;
     p_height_cm: number | null;
     p_weight_kg: number | null;
     p_bio: string;
-    p_livestock_consent: boolean;
   }) => Promise<boolean>;
 }) {
   const [tab, setTab] = useState<Tab>("profile");
@@ -494,7 +470,7 @@ export default function Record({
   const [log, setLog] = useState<LedgerEntry[]>([]);
   const isMobile = useIsMobile();
 
-  // 신원표 사진
+  // 프로필 사진
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
@@ -505,22 +481,20 @@ export default function Record({
   const longPressTimer = useRef<number | null>(null);
   const longPressFired = useRef(false);
 
-  // 신상 기재(죄목·나이·키/체중·비고) 팝업
+  // 프로필 수정(상태 메시지·나이·키/체중·소개) 팝업
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [dCrime, setDCrime] = useState("");
   const [dAge, setDAge] = useState("");
   const [dHeight, setDHeight] = useState("");
   const [dWeight, setDWeight] = useState("");
   const [dBio, setDBio] = useState("");
-  // 신상 기재 화면에 들어온 동안에는 반드시 동의/비동의 중 하나를 골라야 저장이 켜진다.
-  const [dConsent, setDConsent] = useState<boolean | null>(null);
   const [detailsBusy, setDetailsBusy] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
 
-  // 관계 · 수감자 목록
+  // 친구 · 플레이어 목록
   const [relations, setRelations] = useState<RelationEntry[]>([]);
   const [roster, setRoster] = useState<RosterEntry[]>([]);
-  const [openInmate, setOpenInmate] = useState<string | null>(null);
+  const [openPlayer, setOpenPlayer] = useState<string | null>(null);
   const [relFormOpen, setRelFormOpen] = useState(false);
   const [relPartner, setRelPartner] = useState("");
   const [relDesc, setRelDesc] = useState("");
@@ -536,24 +510,11 @@ export default function Record({
     null,
   );
 
-  // 가축 지목 팝업 — 소지품 탭에서 가축 지목권을 사용하면 연다.
-  const [lsOpen, setLsOpen] = useState(false);
-  const [lsTarget, setLsTarget] = useState("");
-  const [lsBusy, setLsBusy] = useState(false);
-  const [lsError, setLsError] = useState<string | null>(null);
-
-  // 호칭 지정 팝업 — 소지품 탭에서 호칭권을 사용하면 연다.
-  const [ttOpen, setTtOpen] = useState(false);
-  const [ttTarget, setTtTarget] = useState("");
-  const [ttTitle, setTtTitle] = useState("");
-  const [ttBusy, setTtBusy] = useState(false);
-  const [ttError, setTtError] = useState<string | null>(null);
-
-  // 되묻기 팝업 — 관계 삭제 · 소지품 반납은 바로 실행하지 않고 한 번 더 확인한다.
+  // 되묻기 팝업 — 관계 삭제 · 소지품 판매는 바로 실행하지 않고 한 번 더 확인한다.
   const [confirm, setConfirm] = useState<
     | { kind: "relation-delete"; id: number; who: string }
     | { kind: "item-sell"; code: string; qty: number; name: string; total: number }
-    // 보은 사용 — 효과 설명은 이 팝업에만 뜬다.
+    // 고양이 선물 사용 — 효과 설명은 이 팝업에만 뜬다.
     | { kind: "cat-use"; code: string; name: string }
     // 우유 섞기 — 섞을 음료가 여러 종류일 때만 고르는 창을 띄운다.
     | { kind: "mix" }
@@ -587,10 +548,10 @@ export default function Record({
     const feed = await supabase.rpc("relations_feed");
     if (feed.data) setRelations(feed.data as RelationEntry[]);
 
-    const { data: inmates } = await supabase.rpc("inmate_roster");
-    if (inmates) setRoster(inmates as RosterEntry[]);
+    const { data: players } = await supabase.rpc("inmate_roster");
+    if (players) setRoster(players as RosterEntry[]);
 
-    // 떠돌이 고양이에게 가장 사랑받는 사람 — 특이사항 맨 아래 한 줄(24_cat.sql).
+    // 떠돌이 고양이에게 가장 사랑받는 사람 — 상태 맨 아래 한 줄.
     const fav = await supabase.rpc("cat_favorite");
     setCatFavorite((fav.data as { username: string | null } | null)?.username ?? null);
   }, [supabase]);
@@ -603,12 +564,12 @@ export default function Record({
     if (tab === "profile" || tab === "roster") loadNews();
   }, [tab, loadNews, refreshKey]);
 
-  // 고양이 — 소지품 탭에 들어갈 때마다 도착한 보은이 있는지 보고, 내가 지은 이름
-  // (○○의 보은 표기)과 보은 효과의 남은 판 수도 함께 받는다.
+  // 고양이 — 소지품 탭에 들어갈 때마다 도착한 선물이 있는지 보고, 내가 지은 이름
+  // (○○의 선물 표기)과 선물 효과의 남은 판 수도 함께 받는다.
   const [catStatus, setCatStatus] = useState<CatStatus | null>(null);
   const [catGiftsOpen, setCatGiftsOpen] = useState(false);
   const [catFavorite, setCatFavorite] = useState<string | null>(null);
-  // 몰래버리기 · 보은 쓰기 결과 팝업
+  // 몰래 정리 · 선물 쓰기 결과 팝업
   const [catNote, setCatNote] = useState<{ title: string; lines: string[] } | null>(null);
   const loadCat = useCallback(async () => {
     const { data } = await supabase.rpc("cat_gifts_pending");
@@ -631,18 +592,19 @@ export default function Record({
   async function tossCatGift(code: string, name: string) {
     const { error } = await supabase.rpc("cat_gift_toss", { p_code: code });
     if (error) {
-      setCatNote({ title: "몰래버리기", lines: [toKoreanError(error.message)] });
+      setCatNote({ title: "몰래 정리", lines: [toKoreanError(error.message)] });
       return;
     }
-    setCatNote({ title: "몰래버리기", lines: catTossLines(catStatus?.cat_name ?? null, name, catSeed()) });
+    setCatNote({ title: "몰래 정리", lines: catTossLines(catStatus?.cat_name ?? null, name, catSeed()) });
     await onRefresh();
   }
 
-  // 같은 보은 효과가 아직 남아 있는가 — 사용 팝업이 [쓴다] 를 막는다.
+  // 같은 선물 효과가 아직 남아 있는가 — 사용 팝업이 [쓴다] 를 막는다.
+  // 장난감 쥐(dead_mouse)의 탐험 보너스 상태는 P2에서 서버가 함께 내려준다.
   function catGiftActive(code: string): boolean {
     if (!catStatus) return false;
     if (code === "dead_bird") return catStatus.bless_left > 0;
-    if (code === "dead_mouse") return !!catStatus.steal_ready;
+    if (code === "dead_mouse") return false;
     return !!catStatus.labor_ready;
   }
 
@@ -658,12 +620,11 @@ export default function Record({
   }
 
   // 이미 승인된 관계가 있는 상대 — 신규 신청의 상대 선택창에서 뺀다.
-  // 신청자·상대 어느 쪽이었든 상관없이, 나와 이미 등재된 관계가 있으면 대상이다.
+  // 신청자·상대 어느 쪽이었든 상관없이, 나와 이미 승인된 관계가 있으면 대상이다.
   const relatedPartners = useMemo(() => {
     const set = new Set<string>();
     for (const r of relations) {
-      // 가축·호칭 관계는 심사 없이 등재되고 중복도 허용한다 — 일반 관계 신청과는 무관하다.
-      if (r.status !== "approved" || r.kind !== "user") continue;
+      if (r.status !== "approved") continue;
       if (r.username === state.username) set.add(r.partner);
       else if (r.partner === state.username) set.add(r.username);
     }
@@ -731,128 +692,6 @@ export default function Record({
     if (data) setRelations(data as RelationEntry[]);
   }
 
-  // 가축 지목·호칭 지정 팝업의 상대 목록을 함께 만든다 — 가축권에 동의했고,
-  // 그 kind 안에서 이미 지목당하지 않았고, 나를 그 kind 로 지목해 둔 상대도
-  // 아닌 사람만. 서버가 마지막 판단을 내리지만, 애초에 고를 수 없는 이름을
-  // 보여주지 않는다. 가축·호칭은 서로 독립이라 kind 별로만 걸러낸다.
-  const permitCandidates = useCallback(
-    (kind: "livestock" | "title") => {
-      const alreadyTaken = new Set<string>();
-      const myOwners = new Set<string>();
-      for (const r of relations) {
-        if (r.kind !== kind) continue;
-        alreadyTaken.add(r.username);
-        if (r.username === state.username) myOwners.add(r.partner);
-      }
-      // 가축 사슬은 주인 포함 LIVESTOCK_CHAIN_MAX 명까지 — 서버(livestock_use)와 같은 셈:
-      // 내 위 주인 단계 + 나 + 대상 + 대상 아래 가장 깊은 가축 단계.
-      let chainOk = (_name: string) => true;
-      if (kind === "livestock") {
-        const ownerOf = new Map<string, string>();
-        const herdOf = new Map<string, string[]>();
-        for (const r of relations) {
-          if (r.kind !== "livestock") continue;
-          ownerOf.set(r.username, r.partner);
-          herdOf.set(r.partner, [...(herdOf.get(r.partner) ?? []), r.username]);
-        }
-        let up = 0;
-        for (
-          let n = ownerOf.get(state.username);
-          n !== undefined && up < LIVESTOCK_CHAIN_MAX;
-          n = ownerOf.get(n)
-        ) up++;
-        const depth = (n: string, d: number): number =>
-          d >= LIVESTOCK_CHAIN_MAX
-            ? d
-            : Math.max(d, ...(herdOf.get(n) ?? []).map((c) => depth(c, d + 1)));
-        chainOk = (name) => up + depth(name, 0) + 2 <= LIVESTOCK_CHAIN_MAX;
-      }
-      return roster.filter(
-        (r) =>
-          r.username !== state.username &&
-          r.livestock_consent === true &&
-          !alreadyTaken.has(r.username) &&
-          !myOwners.has(r.username) &&
-          chainOk(r.username),
-      );
-    },
-    [roster, relations, state.username],
-  );
-  const livestockCandidates = useMemo(
-    () => permitCandidates("livestock"),
-    [permitCandidates],
-  );
-  const titleCandidates = useMemo(
-    () => permitCandidates("title"),
-    [permitCandidates],
-  );
-
-  // 가축권 비동의로 못 돌리는 조건 — 서버(set_profile_details)와 같은 기준이다.
-  //   · 아직 쓰지 않은 가축 지목권·호칭권을 들고 있거나
-  //   · 가축·호칭 관계가 살아있을 때(본인이 대상이든 지목자든)
-  //   · 지목자로서 둘 중 하나를 쓴 뒤 아직 잠금 기간(livestock_lock_left)이 안 지났을 때
-  const livestockLocked = useMemo(() => {
-    const holdsPass = (state.items ?? []).some(
-      (it) =>
-        (it.code === LIVESTOCK_PASS || it.code === TITLE_PASS) && it.qty > 0,
-    );
-    const hasActiveRelation = relations.some(
-      (r) =>
-        r.kind !== "user" &&
-        (r.username === state.username || r.partner === state.username),
-    );
-    return holdsPass || hasActiveRelation || state.livestock_lock_left > 0;
-  }, [state.items, relations, state.username, state.livestock_lock_left]);
-
-  function openLivestockUse() {
-    setLsError(null);
-    setLsTarget("");
-    setLsOpen(true);
-  }
-
-  async function submitLivestock() {
-    if (!lsTarget || lsBusy) return;
-    setLsBusy(true);
-    setLsError(null);
-    const { data, error } = await supabase.rpc("livestock_use", {
-      p_target: lsTarget,
-    });
-    setLsBusy(false);
-    if (error) {
-      setLsError(toKoreanError(error.message));
-      return;
-    }
-    if (data) setRelations(data as RelationEntry[]);
-    setLsOpen(false);
-    await onRefresh();
-  }
-
-  function openTitleUse() {
-    setTtError(null);
-    setTtTarget("");
-    setTtTitle("");
-    setTtOpen(true);
-  }
-
-  async function submitTitle() {
-    const title = ttTitle.trim();
-    if (!ttTarget || !title || ttBusy) return;
-    setTtBusy(true);
-    setTtError(null);
-    const { data, error } = await supabase.rpc("title_use", {
-      p_target: ttTarget,
-      p_title: title,
-    });
-    setTtBusy(false);
-    if (error) {
-      setTtError(toKoreanError(error.message));
-      return;
-    }
-    if (data) setRelations(data as RelationEntry[]);
-    setTtOpen(false);
-    await onRefresh();
-  }
-
   // avatar_path 는 Storage 안의 경로일 뿐이라, 실제 주소는 매번 여기서 만든다.
   // avatarBust 는 같은 경로에 새 파일을 덮어썼을 때 브라우저 캐시를 피하려는 용도.
   const avatarUrl = useMemo(() => {
@@ -863,7 +702,7 @@ export default function Record({
     return avatarBust ? `${data.publicUrl}?v=${avatarBust}` : data.publicUrl;
   }, [supabase, state.avatar_path, avatarBust]);
 
-  const inmateAvatarUrl = useCallback(
+  const playerAvatarUrl = useCallback(
     (path: string | null) => {
       if (!path) return null;
       return supabase.storage.from("avatars").getPublicUrl(path).data
@@ -881,7 +720,7 @@ export default function Record({
       return;
     }
     if (f.size > 20 * 1024 * 1024) {
-      setAvatarError("파일이 너무 큽니다. 20MB 이하로 골라라.");
+      setAvatarError("파일이 너무 큽니다. 20MB 이하로 골라 주세요.");
       return;
     }
     setAvatarError(null);
@@ -978,13 +817,11 @@ export default function Record({
     setDHeight(state.height_cm != null ? String(state.height_cm) : "");
     setDWeight(state.weight_kg != null ? String(state.weight_kg) : "");
     setDBio(state.bio ?? "");
-    setDConsent(state.livestock_consent);
     setDetailsOpen(true);
   }
 
   async function saveDetails() {
-    if (detailsBusy || dConsent === null) return;
-    if (dConsent === false && livestockLocked) return;
+    if (detailsBusy) return;
     setDetailsBusy(true);
     setDetailsError(null);
     const toNum = (v: string) => (v.trim() === "" ? null : Number(v));
@@ -994,7 +831,6 @@ export default function Record({
       p_height_cm: toNum(dHeight),
       p_weight_kg: toNum(dWeight),
       p_bio: dBio.trim(),
-      p_livestock_consent: dConsent,
     });
     setDetailsBusy(false);
     if (!ok) {
@@ -1022,8 +858,7 @@ export default function Record({
         f.expires_at !== null &&
         new Date(f.expires_at).getTime() > Date.now(),
     );
-  // 담배는 불을 붙일 것이 있어야 쓴다 — 서버(flex_use)와 같은 기준으로 미리 막는다.
-  // 라이터는 장착해도 인벤에 남으므로 보유 수량만 본다.
+  // 굽기에는 라이터가 있어야 한다. 라이터는 장착해도 인벤에 남으므로 보유 수량만 본다.
   const lighterHeld = useMemo(() => hasLighter(items), [items]);
   // 우유에 섞을 수 있는 음료 중 지금 가진 것.
   const mixDrinks = useMemo(() => items.filter((i) => MIX_TO[i.code] && i.qty > 0), [items]);
@@ -1031,7 +866,7 @@ export default function Record({
   const action =
     "label-11 state-fade border-line border bg-surface-hi px-3 py-2.5 text-fg-mid enabled:hover:text-fg-hi disabled:text-fg-low";
 
-  const inmate = roster.find((r) => r.username === openInmate) ?? null;
+  const picked = roster.find((r) => r.username === openPlayer) ?? null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -1044,15 +879,14 @@ export default function Record({
         height="h-10"
       />
 
-      {/* ── 신상 ──
-          좌측은 종이 대장에서 뜯어낸 신원표 한 장, 우측은 헤더에 없는 항목만 남긴 표다.
-          체력 배급 · 보유 코인 · 금일 배정은 헤더가 담당하므로 여기서 다시 적지 않는다. */}
+      {/* ── 내 정보 ──
+          좌측은 프로필 카드, 우측은 헤더에 없는 항목만 남긴 표다.
+          에너지 · 보유 코인 · 남은 판은 헤더가 담당하므로 여기서 다시 적지 않는다. */}
       {tab === "profile" && (
         <div className="flex flex-col gap-2">
           <ProfileCard
             catLoved={catFavorite === state.username}
             no={me.no}
-            term={me.term}
             username={state.username}
             avatarUrl={avatarUrl}
             cell={state.cell}
@@ -1064,9 +898,6 @@ export default function Record({
             hpMax={state.hp_max}
             bio={state.bio}
             flex={[
-              ...(state.addict_lines ?? (state.addicted ? ["손이 늘 떨린다"] : [])).map(
-                (text) => ({ text }),
-              ),
               ...flexStatus.map((f) =>
                 f.expires_at !== null
                   ? {
@@ -1081,7 +912,6 @@ export default function Record({
                   : { text: f.text },
               ),
             ]}
-            livestockConsent={state.livestock_consent}
             relations={approvedRelationsFor(state.username, relations)}
             notes={recordNotes(state)}
             footer={
@@ -1091,7 +921,7 @@ export default function Record({
             }
             photo={
               <>
-                {/* 이 시설은 수용자를 개별 촬영하지 않는다. 대신 본인이 직접 채운다.
+                {/* 사진은 본인이 직접 올린다.
                     사진이 있으면 "수정"이 바꾸기/삭제하기 선택 팝업을 열고,
                     없으면 바로 파일을 고르게 한다. */}
                 <button
@@ -1121,7 +951,7 @@ export default function Record({
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="mono-13 text-fg-low">사진 자리</span>
+                    <span className="mono-13 text-fg-low">사진 없음</span>
                   )}
                   {/* 사진 없음 → 항상 보임. 사진 있음 · PC → 호버에만. 사진 있음 · 모바일 → 아예 안 그린다(길게 누르기로 대체). */}
                   {(!avatarUrl || !isMobile) && (
@@ -1147,23 +977,15 @@ export default function Record({
           />
 
           <Panel className="flex-1">
-            <MonoLabel tone="low">체력 관리 지침</MonoLabel>
+            <MonoLabel tone="low">에너지 안내</MonoLabel>
             <ul className="mt-2 flex flex-col gap-1">
               {[
-                "체력은 2시간마다 3, 1판마다 1씩 차감된다.",
-                "도시락은 08:00 · 12:00 · 19:00에 지급한다.",
-                "회복은 소지품에서 직접 섭취해야 반영된다.",
-                "체력이 0이 되면 병동으로 이송한다. 수용은 14시간을 시작으로 입원을 거듭할수록 길어진다. (최대 48시간) 퇴원 후 3일 동안 다시 이송되지 않으면 14시간으로 돌아간다.",
-                "퇴원 후의 체력은 80이며, 먹을 것이 있으면 병동 이송을 15시간 유예한다.",
-                "입원 중에는 도시락을 지급하지 않는다.",
-                // 해당될 때만 붙는 줄. 수치는 00_rules.sql 의 hp_decay_per_block(3)
-                // + addict_hp_penalty(1) · withdrawal_hours(12). 금단은 체력을 더 깎지 않는다.
-                ...(state.addicted
-                  ? ["약물 중독 상태에서는 체력이 2시간마다 4씩 차감된다. 중독은 해독제로만 해제된다."]
-                  : []),
-                ...(state.withdrawal
-                  ? ["마지막 투약 후 12시간이 지나면 금단 증상이 나타난다."]
-                  : []),
+                "에너지는 2시간마다 3, 1판마다 1씩 줄어듭니다.",
+                "도시락은 08:00 · 12:00 · 19:00에 지급됩니다.",
+                "회복 아이템은 소지품에서 직접 사용해야 반영됩니다.",
+                "에너지가 0이 되면 휴식 쿨다운이 시작됩니다. 휴식 중에는 게임·미션·탐험을 할 수 없습니다.",
+                "휴식이 끝나면 에너지 80으로 돌아옵니다.",
+                "휴식 중에는 도시락이 지급되지 않습니다.",
               ].map((line, i) => (
                 <li
                   key={i}
@@ -1184,13 +1006,13 @@ export default function Record({
       {tab === "items" && (
         <section className="bg-bg-1 flex flex-col gap-2 p-4">
           <p className="body-15 text-fg-mid">
-            반납은 시설이 되사주는 것이다. 값은 시설이 정하고 깎을 수 없다.
-            사람끼리 주고받으려면 거래소를 쓴다.
+            판매하면 상점이 정해진 값에 되사 갑니다.
+            다른 플레이어와 주고받으려면 상점·거래의 개인 거래를 이용하세요.
           </p>
 
           {items.length === 0 ? (
             <p className="scanline-faint mono-13 text-fg-low border-line border border-dashed px-3 py-6 text-center">
-              등재된 소지품 없음
+              소지품 없음
             </p>
           ) : (
             <ul className="flex flex-col gap-1.5">
@@ -1208,10 +1030,10 @@ export default function Record({
                       </div>
                       <p className="mono-13 text-fg-mid">
                         {itemEffect(it)}
-                        {needsLighter(it) && !lighterHeld && " · 라이터 필요"}
+
                         {(equippedCount.get(it.code) ?? 0) > 0 &&
                           ` · ${equippedCount.get(it.code)}개 장착 중`}
-                        {!it.tradable && " · 반출 금지"}
+                        {!it.tradable && " · 거래 불가"}
                       </p>
                     </div>
                     <span className="flex flex-col items-end leading-tight">
@@ -1221,7 +1043,7 @@ export default function Record({
                       {!!it.open_left && (
                         <span className="mono-13 text-fg-mid tabular-nums">
                           {it.qty > 0 ? "+" : ""}
-                          {it.open_left}개비
+                          {it.open_left}회분
                         </span>
                       )}
                     </span>
@@ -1269,31 +1091,19 @@ export default function Record({
                       isUsable(it) && (
                         <button
                           type="button"
-                          // 병동을 줄이는 물건은 병동에 있을 때만, 나머지 효과 아이템은
-                          // 병동 밖에서만 — 순수 과시 소모품(flex_use)은 가리지 않는다.
-                          // 담배만 예외로, 라이터가 없으면 갈래를 가리지 않고 막는다.
+                          // 휴식을 줄이는 물건은 휴식 중일 때만, 나머지 효과 아이템은
+                          // 휴식 밖에서만 — 순수 꾸미기 소모품(flex_use)은 가리지 않는다.
                           disabled={
                             busy ||
-                            // 송편 효과는 한 사람에 하나 — 이미 먹었으면 막는다.
-                            (itemAction(it) === "songpyeon" && !!state.chuseok) ||
-                            // 네잎클로버도 한 번에 하나 — 켜진 동안은 막는다.
+                            // 네잎클로버는 한 번에 하나 — 켜진 동안은 막는다.
                             (it.kind === "charm" && !!state.luck) ||
-                            (needsLighter(it) && !lighterHeld) ||
                             (itemAction(it) === "use" &&
                               (it.ward_cut > 0 ? !state.in_ward : state.in_ward))
                           }
-                          onClick={() =>
-                            it.code === LIVESTOCK_PASS
-                              ? openLivestockUse()
-                              : it.code === TITLE_PASS
-                                ? openTitleUse()
-                                : onUse(it.code)
-                          }
+                          onClick={() => onUse(it.code)}
                           className={`${action} flex-1`}
                         >
-                          {itemAction(it) === "songpyeon"
-                            ? "먹기"
-                            : itemAction(it) === "radio"
+                          {itemAction(it) === "radio"
                               ? "켜기"
                               : itemAction(it) === "gear"
                                 ? INSTRUMENTS.has(it.code)
@@ -1321,7 +1131,7 @@ export default function Record({
                           onClick={() => tossCatGift(it.code, it.name)}
                           className={`${action} flex-1`}
                         >
-                          몰래버리기
+                          몰래 정리
                         </button>
                       </>
                     )}
@@ -1363,7 +1173,7 @@ export default function Record({
                           }
                           className={`${action} flex-1`}
                         >
-                          1개 반납 {it.sell_price}
+                          1개 판매 {it.sell_price}
                         </button>
                         {it.qty > 1 && (
                           <button
@@ -1380,7 +1190,7 @@ export default function Record({
                             }
                             className={`${action} flex-1`}
                           >
-                            전량 반납 {it.sell_price * it.qty}
+                            전부 판매 {it.sell_price * it.qty}
                           </button>
                         )}
                       </>
@@ -1393,13 +1203,13 @@ export default function Record({
 
           {state.in_ward && (
             <p className="scanline-faint mono-13 text-fg border-line border border-dashed px-3 py-2.5">
-              병동에서는 진료권 종류만 사용할 수 있다.
+              휴식 중에는 휴식을 줄이는 아이템만 사용할 수 있습니다.
             </p>
           )}
         </section>
       )}
 
-      {/* ── 수감목록 ── */}
+      {/* ── 친구 ── */}
       {tab === "roster" && (
         <div className="flex flex-col gap-2">
           <TabRail
@@ -1413,11 +1223,11 @@ export default function Record({
 
           {rosterSub === "relations" && (
             <>
-          {/* 반려된 관계신청 — 내 신청 중 반려된 것만, 있을 때만 보인다 */}
+          {/* 반려된 친구 신청 — 내 신청 중 반려된 것만, 있을 때만 보인다 */}
           {relations.filter((r) => r.mine && r.status === "rejected").length >
             0 && (
               <section className="bg-bg-1 flex flex-col gap-2 p-4">
-                <MonoLabel tone="low">반려된 관계신청</MonoLabel>
+                <MonoLabel tone="low">반려된 친구 신청</MonoLabel>
                 <ul className="flex flex-col gap-1.5">
                   {relations
                     .filter((r) => r.mine && r.status === "rejected")
@@ -1452,58 +1262,41 @@ export default function Record({
               </section>
             )}
 
-          {/* 등재된 관계 — 관리자가 수락한 것만, 모두에게 보인다 */}
+          {/* 친구 피드 — 관리자가 승인한 것만, 모두에게 보인다 */}
           <section className="bg-bg-1 flex flex-col gap-2 p-4">
-            <MonoLabel tone="low">등재된 관계</MonoLabel>
+            <MonoLabel tone="low">친구 피드</MonoLabel>
 
             {relError && <p className="mono-13 text-loss">{relError}</p>}
 
             {relations.filter((r) => r.status === "approved").length === 0 ? (
               <p className="scanline-faint mono-13 text-fg-low border-line border border-dashed px-3 py-8 text-center">
-                등재된 관계 없음
+                아직 등록된 친구가 없습니다
               </p>
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {relations
                   .filter((r) => r.status === "approved")
                   .map((r) => {
-                    // 가축·호칭 관계는 심사 없이 등재되고 컬럼 관례가 같다
-                    // (username = 대상, partner = 지목자/주인) — 화살표·정렬도 함께 묶는다.
-                    const isPass = r.kind !== "user";
                     const isPartner = !!r.partner && r.partner === state.username;
                     // 작성자·상대는 수정·삭제 모두, 관리자는 삭제만 가능하다.
-                    // 가축·호칭 관계는 기간이 끝나야 사라진다 — 관리자만 예외로 지울 수 있다.
-                    const canEdit = !isPass && (r.mine || isPartner) && !!r.partner;
-                    const canDelete = isPass
-                      ? state.is_admin
-                      : r.mine || isPartner || state.is_admin;
+                    const canEdit = (r.mine || isPartner) && !!r.partner;
+                    const canDelete = r.mine || isPartner || state.is_admin;
                     return (
                       <li key={r.id} className="bg-surface flex flex-col gap-1 p-3">
                         <div className="flex min-w-0 flex-wrap items-baseline gap-1.5">
                           <MonoLabel tone="low" className="min-w-0 truncate">
-                            {isPass && r.partner
-                              ? `${identityOf(r.partner).no} ${r.partner}`
-                              : `${identityOf(r.username).no} ${r.username}`}
+                            {`${identityOf(r.username).no} ${r.username}`}
                           </MonoLabel>
                           {r.partner && (
                             <>
-                              <span className="text-fg-low">
-                                {isPass ? "→" : "↔"}
-                              </span>
+                              <span className="text-fg-low">↔</span>
                               <MonoLabel tone="low" className="min-w-0 truncate">
-                                {isPass
-                                  ? `${identityOf(r.username).no} ${r.username}`
-                                  : `${identityOf(r.partner).no} ${r.partner}`}
+                                {`${identityOf(r.partner).no} ${r.partner}`}
                               </MonoLabel>
                             </>
                           )}
                         </div>
                         <p className="body-15 text-fg whitespace-pre-wrap break-words">{r.body}</p>
-                        {isPass && r.expires_in != null && (
-                          <p className="mono-13 text-fg-low">
-                            {formatDaysLeft(r.expires_in)} 남음
-                          </p>
-                        )}
                         {canDelete && (
                           <div className="mt-1 flex justify-end gap-1.5">
                             {canEdit && (
@@ -1523,11 +1316,7 @@ export default function Record({
                                 setConfirm({
                                   kind: "relation-delete",
                                   id: r.id,
-                                  who: r.partner
-                                    ? isPass
-                                      ? `${r.partner} → ${r.username}`
-                                      : `${r.username} ↔ ${r.partner}`
-                                    : r.username,
+                                  who: r.partner ? `${r.username} ↔ ${r.partner}` : r.username,
                                 })
                               }
                               className="label-11 state-fade border-line shrink-0 border bg-surface-hi px-2.5 py-1 text-loss enabled:hover:opacity-80 disabled:text-fg-low"
@@ -1583,7 +1372,7 @@ export default function Record({
               }}
               className={action}
             >
-              관계 기록
+              친구 등록
             </button>
           </section>
             </>
@@ -1591,13 +1380,12 @@ export default function Record({
 
           {rosterSub === "list" && (
             <>
-          {/* 수감자 목록 — 존재하는 유저의 번호·이름·상태. 이름을 누르면
-              바로 아래에 그 사람의 신상이 펼쳐진다(체력 관리 지침은 제외). */}
+          {/* 플레이어 목록 — 번호·이름·상태. 이름을 누르면 바로 아래에 그 사람의 프로필이 펼쳐진다. */}
           <section className="bg-bg-1 flex flex-col gap-2 p-4">
-            <MonoLabel tone="low">수감자 목록 {roster.length}명</MonoLabel>
+            <MonoLabel tone="low">플레이어 {roster.length}명</MonoLabel>
             {roster.length === 0 ? (
               <p className="scanline-faint mono-13 text-fg-low border-line border border-dashed px-3 py-6 text-center">
-                등재된 수감자 없음
+                플레이어 없음
               </p>
             ) : (
               <ul className="grid grid-cols-2 gap-x-3 tab:grid-cols-1">
@@ -1617,7 +1405,7 @@ export default function Record({
                         <button
                           type="button"
                           onClick={() =>
-                            setOpenInmate((u) =>
+                            setOpenPlayer((u) =>
                               u === p.username ? null : p.username,
                             )
                           }
@@ -1627,12 +1415,12 @@ export default function Record({
                         </button>
                         {sameCell && (
                           <span className="label-11 border-line-soft text-fg-low shrink-0 border px-1 py-px">
-                            동실
+                            같은 룸
                           </span>
                         )}
                         {p.in_ward && (
                           <span className="label-11 border-loss/40 text-loss shrink-0 border px-1 py-px">
-                            병동
+                            휴식
                           </span>
                         )}
                       </div>
@@ -1643,24 +1431,22 @@ export default function Record({
             )}
           </section>
 
-          {inmate && (
+          {picked && (
             <ProfileCard
-              no={identityOf(inmate.username).no}
-              term={identityOf(inmate.username).term}
-              username={inmate.username}
-              avatarUrl={inmateAvatarUrl(inmate.avatar_path)}
-              cell={inmate.cell}
-              crime={inmate.crime}
-              age={inmate.age}
-              heightCm={inmate.height_cm}
-              weightKg={inmate.weight_kg}
-              hp={inmate.hp}
-              hpMax={inmate.hp_max}
-              bio={inmate.bio}
-              flex={inmate.flex.map((text) => ({ text }))}
-              catLoved={catFavorite === inmate.username}
-              livestockConsent={inmate.livestock_consent}
-              relations={approvedRelationsFor(inmate.username, relations)}
+              no={identityOf(picked.username).no}
+              username={picked.username}
+              avatarUrl={playerAvatarUrl(picked.avatar_path)}
+              cell={picked.cell}
+              crime={picked.crime}
+              age={picked.age}
+              heightCm={picked.height_cm}
+              weightKg={picked.weight_kg}
+              hp={picked.hp}
+              hpMax={picked.hp_max}
+              bio={picked.bio}
+              flex={picked.flex.map((text) => ({ text }))}
+              catLoved={catFavorite === picked.username}
+              relations={approvedRelationsFor(picked.username, relations)}
             />
           )}
             </>
@@ -1680,7 +1466,7 @@ export default function Record({
 
           {log.length === 0 ? (
             <p className="scanline-faint mono-13 text-fg-low border-line border border-dashed px-3 py-6 text-center">
-              등재된 기록 없음
+              기록 없음
             </p>
           ) : (
             <ul className="flex flex-col">
@@ -1748,168 +1534,7 @@ export default function Record({
         <ResultPopup title={catNote.title} lines={catNote.lines} onClose={() => setCatNote(null)} />
       )}
 
-      {/* 가축 지목 팝업 — 소지품 탭에서 가축 지목권을 사용하면 연다. */}
-      {lsOpen &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="bg-bg-0/80 fixed inset-0 z-50 flex items-center justify-center p-4"
-            data-zone="record"
-            onClick={() => {
-              if (!lsBusy) setLsOpen(false);
-            }}
-          >
-            <div
-              className="border-line max-h-[85dvh] w-full max-w-md overflow-y-auto border bg-bg-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="border-line-soft flex items-center justify-between border-b px-4 py-3">
-                <MonoLabel>가축 지목</MonoLabel>
-                <button
-                  type="button"
-                  onClick={() => setLsOpen(false)}
-                  className="label-11 text-fg-mid hover:text-fg-hi"
-                  disabled={lsBusy}
-                >
-                  닫기
-                </button>
-              </div>
-              <div className="flex flex-col gap-2 p-4">
-                <p className="body-15 text-fg-mid">
-                  지목하면 3일 동안 상대를 가축으로 부릴 수 있다. 신상에서 가축권에 동의한 사람만 고를 수 있다.
-                </p>
-
-                <MonoLabel tone="low">상대</MonoLabel>
-                {livestockCandidates.length === 0 ? (
-                  <p className="scanline-faint mono-13 text-fg-low border-line border border-dashed px-3 py-6 text-center">
-                    지목할 수 있는 사람이 없다.
-                  </p>
-                ) : (
-                  <select
-                    value={lsTarget}
-                    onChange={(e) => setLsTarget(e.target.value)}
-                    className="mono-13 border-line bg-surface text-fg-hi focus:border-brass-line w-full border px-3 py-2.5 outline-none"
-                  >
-                    <option value="">상대 선택…</option>
-                    {livestockCandidates.map((r) => (
-                      <option key={r.username} value={r.username}>
-                        {identityOf(r.username).no} {r.username}
-                      </option>
-                    ))}
-                  </select>
-                )}
-
-                {lsError && <p className="mono-13 text-loss">{lsError}</p>}
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={lsBusy || !lsTarget}
-                    onClick={submitLivestock}
-                    className="label-11 state-fade flex-1 border border-brass-line bg-brass-fill px-3 py-2.5 text-fg-hi disabled:border-line-soft disabled:bg-surface disabled:text-fg-low"
-                  >
-                    지목
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLsOpen(false)}
-                    disabled={lsBusy}
-                    className={action}
-                  >
-                    취소
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* 호칭 지정 팝업 — 소지품 탭에서 호칭권을 사용하면 연다. */}
-      {ttOpen &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="bg-bg-0/80 fixed inset-0 z-50 flex items-center justify-center p-4"
-            data-zone="record"
-            onClick={() => {
-              if (!ttBusy) setTtOpen(false);
-            }}
-          >
-            <div
-              className="border-line max-h-[85dvh] w-full max-w-md overflow-y-auto border bg-bg-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="border-line-soft flex items-center justify-between border-b px-4 py-3">
-                <MonoLabel>호칭 지정</MonoLabel>
-                <button
-                  type="button"
-                  onClick={() => setTtOpen(false)}
-                  className="label-11 text-fg-mid hover:text-fg-hi"
-                  disabled={ttBusy}
-                >
-                  닫기
-                </button>
-              </div>
-              <div className="flex flex-col gap-2 p-4">
-                <p className="body-15 text-fg-mid">
-                  지목하면 하루 동안 상대에게 원하는 호칭으로 불릴 수 있다. 신상에서 가축권에 동의한 사람만 고를 수 있다.
-                </p>
-
-                <MonoLabel tone="low">상대</MonoLabel>
-                {titleCandidates.length === 0 ? (
-                  <p className="scanline-faint mono-13 text-fg-low border-line border border-dashed px-3 py-6 text-center">
-                    지목할 수 있는 사람이 없다.
-                  </p>
-                ) : (
-                  <select
-                    value={ttTarget}
-                    onChange={(e) => setTtTarget(e.target.value)}
-                    className="mono-13 border-line bg-surface text-fg-hi focus:border-brass-line w-full border px-3 py-2.5 outline-none"
-                  >
-                    <option value="">상대 선택…</option>
-                    {titleCandidates.map((r) => (
-                      <option key={r.username} value={r.username}>
-                        {identityOf(r.username).no} {r.username}
-                      </option>
-                    ))}
-                  </select>
-                )}
-
-                <MonoLabel tone="low">호칭</MonoLabel>
-                <input
-                  type="text"
-                  value={ttTitle}
-                  onChange={(e) => setTtTitle(e.target.value)}
-                  placeholder="예: 형님 · 오빠 · 주인님"
-                  className={inputField}
-                />
-
-                {ttError && <p className="mono-13 text-loss">{ttError}</p>}
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={ttBusy || !ttTarget || !ttTitle.trim()}
-                    onClick={submitTitle}
-                    className="label-11 state-fade flex-1 border border-brass-line bg-brass-fill px-3 py-2.5 text-fg-hi disabled:border-line-soft disabled:bg-surface disabled:text-fg-low"
-                  >
-                    지목
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTtOpen(false)}
-                    disabled={ttBusy}
-                    className={action}
-                  >
-                    취소
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* 관계 기록 팝업 — body 로 포탈. 상위에 filter/transform 이 걸려도
+      {/* 친구 등록 팝업 — body 로 포탈. 상위에 filter/transform 이 걸려도
           뷰포트 기준으로 뜨게 해서 모바일에서 화면 밖으로 새지 않는다. */}
       {relFormOpen &&
         typeof document !== "undefined" &&
@@ -1924,7 +1549,7 @@ export default function Record({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="border-line-soft flex items-center justify-between border-b px-4 py-3">
-                <MonoLabel>{relLocked ? "수정 신청" : "관계 기록"}</MonoLabel>
+                <MonoLabel>{relLocked ? "수정 신청" : "친구 등록"}</MonoLabel>
                 <button
                   type="button"
                   onClick={() => setRelFormOpen(false)}
@@ -1936,7 +1561,7 @@ export default function Record({
               <div className="flex flex-col gap-2 p-4">
                 {!relLocked && (
                   <p className="body-15 text-fg-mid">
-                    상대를 고르고 어떤 사이인지 적어라. 관리자가 확인하면 등재된 관계에 오른다.
+                    상대를 고르고 어떤 사이인지 적어 주세요. 관리자가 확인하면 친구 피드에 올라갑니다.
                   </p>
                 )}
 
@@ -2082,7 +1707,7 @@ export default function Record({
           document.body,
         )}
 
-      {/* 되묻기 팝업 — 관계 삭제 · 소지품 반납 공용 */}
+      {/* 되묻기 팝업 — 관계 삭제 · 소지품 판매 공용 */}
       {confirm &&
         typeof document !== "undefined" &&
         createPortal(
@@ -2099,17 +1724,17 @@ export default function Record({
               <div className="border-line-soft flex items-center justify-between border-b px-4 py-3">
                 <MonoLabel>
                   {confirm.kind === "relation-delete"
-                    ? "관계 삭제"
+                    ? "친구 삭제"
                     : confirm.kind === "cat-use"
                       ? confirm.name
                       : confirm.kind === "mix"
                         ? "우유에 섞기"
-                        : "소지품 반납"}
+                        : "소지품 판매"}
                 </MonoLabel>
               </div>
               {confirm.kind === "mix" ? (
                 <div className="flex flex-col gap-2 p-4">
-                  <p className="body-15 text-fg">무엇을 섞을까.</p>
+                  <p className="body-15 text-fg">무엇을 섞을까요?</p>
                   {mixDrinks.map((d) => {
                     const to = items.find((i) => i.code === MIX_TO[d.code])?.name ?? MIX_NAME[d.code];
                     return (
@@ -2133,7 +1758,7 @@ export default function Record({
                     onClick={() => setConfirm(null)}
                     className={action}
                   >
-                    그만둔다
+                    취소
                   </button>
                 </div>
               ) : confirm.kind === "cat-use" ? (
@@ -2155,7 +1780,7 @@ export default function Record({
                           onClick={runConfirm}
                           className={`${action} flex-1`}
                         >
-                          쓴다
+                          사용
                         </button>
                         <button
                           type="button"
@@ -2163,7 +1788,7 @@ export default function Record({
                           onClick={() => setConfirm(null)}
                           className={action}
                         >
-                          그만둔다
+                          취소
                         </button>
                       </div>
                     </div>
@@ -2173,8 +1798,8 @@ export default function Record({
               <div className="flex flex-col gap-2 p-4">
                 <p className="body-15 text-fg">
                   {confirm.kind === "relation-delete"
-                    ? `${confirm.who} 관계 기록을 삭제한다. 되돌릴 수 없다.`
-                    : `${confirm.name} ${confirm.qty}개를 반납한다. 반납가 ${confirm.total} 코인. 되돌릴 수 없다.`}
+                    ? `${confirm.who} 친구 기록을 삭제합니다. 되돌릴 수 없습니다.`
+                    : `${confirm.name} ${confirm.qty}개를 ${confirm.total} 코인에 판매합니다. 되돌릴 수 없습니다.`}
                 </p>
                 <div className="mt-1 flex gap-2">
                   <button
@@ -2183,7 +1808,7 @@ export default function Record({
                     onClick={runConfirm}
                     className="label-11 state-fade flex-1 border border-loss/60 bg-surface-hi px-3 py-2.5 text-loss enabled:hover:opacity-80 disabled:text-fg-low"
                   >
-                    {confirm.kind === "relation-delete" ? "삭제" : "반납"}
+                    {confirm.kind === "relation-delete" ? "삭제" : "판매"}
                   </button>
                   <button
                     type="button"
@@ -2271,7 +1896,7 @@ export default function Record({
         />
       )}
 
-      {/* 신상 기재 팝업 — 죄목 · 나이 · 키/체중 · 비고 */}
+      {/* 프로필 수정 팝업 — 상태 메시지 · 나이 · 키/체중 · 소개 */}
       {detailsOpen &&
         typeof document !== "undefined" &&
         createPortal(
@@ -2285,7 +1910,7 @@ export default function Record({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="border-line-soft flex items-center justify-between border-b px-4 py-3">
-                <MonoLabel>신상 기재</MonoLabel>
+                <MonoLabel>프로필 수정</MonoLabel>
                 <button
                   type="button"
                   onClick={() => setDetailsOpen(false)}
@@ -2297,15 +1922,15 @@ export default function Record({
               </div>
               <div className="flex flex-col gap-2 p-4">
                 <p className="mono-13 text-fg-low">
-                  사진은 신원표의 사진 칸을 눌러 바꾼다. 휴대전화에서는 길게 누른다.
+                  사진은 프로필 카드의 사진 칸을 눌러 바꿉니다. 휴대전화에서는 길게 누르세요.
                 </p>
 
-                <MonoLabel tone="low">죄목</MonoLabel>
+                <MonoLabel tone="low">상태 메시지</MonoLabel>
                 <input
                   value={dCrime}
                   onChange={(e) => setDCrime(e.target.value)}
                   maxLength={40}
-                  placeholder="예: 살인미수"
+                  placeholder="예: 오늘은 경마만 봅니다"
                   className={inputField}
                 />
 
@@ -2352,53 +1977,16 @@ export default function Record({
                   </div>
                 </div>
 
-                <MonoLabel tone="low">비고</MonoLabel>
+                <MonoLabel tone="low">소개</MonoLabel>
                 <textarea
                   value={dBio}
                   onChange={(e) => setDBio(e.target.value)}
                   maxLength={300}
                   rows={5}
-                  placeholder="예: 왼쪽 눈썹에 흉터. 말수가 적다."
+                  placeholder="예: 주말 저녁에 주로 접속합니다."
                   className="mono-13 border-line bg-surface text-fg-hi placeholder:text-fg-low focus:border-brass-line min-h-32 w-full resize-none border px-3 py-2.5 outline-none"
                 />
 
-                <MonoLabel tone="low">가축권 동의</MonoLabel>
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setDConsent(true)}
-                    className={`label-11 state-fade flex-1 border px-3 py-2.5 ${dConsent === true
-                      ? "border-brass-line bg-brass-fill text-fg-hi"
-                      : "border-line bg-surface text-fg-mid hover:text-fg-hi"
-                      }`}
-                  >
-                    동의
-                  </button>
-                  <button
-                    type="button"
-                    disabled={livestockLocked}
-                    onClick={() => setDConsent(false)}
-                    className={`label-11 state-fade flex-1 border px-3 py-2.5 ${dConsent === false
-                      ? "border-loss/60 bg-surface-hi text-loss"
-                      : "border-line bg-surface text-fg-mid hover:text-fg-hi"
-                      } disabled:cursor-not-allowed disabled:opacity-40`}
-                  >
-                    비동의
-                  </button>
-                </div>
-                {livestockLocked ? (
-                  <p className="mono-13 text-fg-low">
-                    {state.livestock_lock_left > 0
-                      ? `가축 지목권·호칭권을 사용한 뒤 ${formatDaysLeft(state.livestock_lock_left)} 동안은 가축권 동의를 철회할 수 없다.`
-                      : "가축 지목권·호칭권을 가지고 있거나, 가축·호칭 관계가 진행 중인 동안은 가축권 동의를 철회할 수 없다."}
-                  </p>
-                ) : (
-                  dConsent === null && (
-                    <p className="mono-13 text-fg-low">
-                      동의 또는 비동의 중 하나를 반드시 골라야 저장할 수 있다.
-                    </p>
-                  )
-                )}
 
                 {detailsError && (
                   <p className="mono-13 text-loss">{detailsError}</p>
@@ -2406,11 +1994,7 @@ export default function Record({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    disabled={
-                      detailsBusy ||
-                      dConsent === null ||
-                      (dConsent === false && livestockLocked)
-                    }
+                    disabled={detailsBusy}
                     onClick={saveDetails}
                     className="label-11 state-fade flex-1 border border-brass-line bg-brass-fill px-3 py-2.5 text-fg-hi disabled:border-line-soft disabled:bg-surface disabled:text-fg-low"
                   >

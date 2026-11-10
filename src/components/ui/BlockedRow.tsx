@@ -14,7 +14,7 @@ export default function BlockedRow({
   disabled,
 }: {
   blocked: Blocked;
-  /** 병동일 때의 진료권류처럼, 실제로 가진 만큼만 버튼으로 뜬다. */
+  /** 휴식 중일 때의 휴식 단축 아이템처럼, 실제로 가진 만큼만 버튼으로 뜬다. */
   actions?: { label: string; onClick: () => void }[];
   disabled?: boolean;
 }) {

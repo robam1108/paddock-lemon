@@ -5,8 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { compressImage } from "@/lib/image";
 
 /**
- * 진정 접수·답변 칸에 붙는 사진 첨부 한 장. PetitionBox·AdminPanel 양쪽의
- * 진정함 스레드가 같이 쓴다. 업로드는 제출 시점에 하고, 여기서는 로컬
+ * 피드백 작성·답변 칸에 붙는 사진 첨부 한 장. PetitionBox·AdminPanel 양쪽의
+ * 피드백 스레드가 같이 쓴다. 업로드는 제출 시점에 하고, 여기서는 로컬
  * 미리보기만 들고 있는다 — RPC가 실패하면 굳이 지울 파일이 없다.
  */
 export function usePhotoAttach() {
@@ -24,7 +24,7 @@ export function usePhotoAttach() {
       return;
     }
     if (f.size > 20 * 1024 * 1024) {
-      setPickError("파일이 너무 큽니다. 20MB 이하로 골라라.");
+      setPickError("파일이 너무 큽니다. 20MB 이하로 골라 주세요.");
       return;
     }
     setPickError(null);

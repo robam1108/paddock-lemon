@@ -24,7 +24,7 @@ export default function InvitePopup({
   const gameName = PVP_GAMES.find((g) => g.id === invite.game)?.name ?? "대전";
   const left = useCountdown(invite.expires_in);
 
-  // 초대는 시설이 보내는 게 아니라 사람이 부르는 것이라 서식 번호가 없다.
+  // 초대는 사람이 부르는 것이라 헤더 띠가 없다.
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-bg-0/80 p-4 tab:items-center">
       <div className="border-line w-full max-w-sm border bg-bg-1">

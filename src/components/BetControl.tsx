@@ -22,7 +22,7 @@ export default function BetControl({
   max: number;
   disabled: boolean;
   onChange: (next: number) => void;
-  /** 이 판돈으로 걸었을 때 받는 일당. 있으면 보유 코인 옆에 함께 보여준다. */
+  /** 이 판돈으로 걸었을 때 받는 참가 보상. 있으면 보유 코인 옆에 함께 보여준다. */
   wage?: number;
   /** 보유 코인 표기. 상한(max)이 보유 코인과 다를 때(경마 한도 등)만 준다. */
   held?: number;
@@ -158,7 +158,7 @@ export default function BetControl({
         코인
         <span className={wage && !disabled ? "" : "invisible"}>
           {" "}
-          · 일당{" "}
+          · 참가 보상{" "}
           <span className="tabular-nums inline-block min-w-[3ch] text-right">
             {wage ?? 0}
           </span>

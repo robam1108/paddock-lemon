@@ -76,7 +76,7 @@ export default function RadioPopup({
         <div className="border-line-soft flex items-center justify-between border-b bg-surface px-4 py-2">
           <MonoLabel tone="low">라디오</MonoLabel>
           <MonoLabel tone="mid">
-            {channel === "music" ? "음악" : "무간 경마 소식"}
+            {channel === "music" ? "음악" : "인사이더 팁"}
           </MonoLabel>
         </div>
         <div className="flex flex-col gap-3 p-4">
@@ -109,7 +109,7 @@ export default function RadioPopup({
               ) : (
                 <>
                   <p className="mono-13 text-fg-low border-line-soft border-b pb-1.5">
-                    【무간경마】{" "}
+                    【인사이더 팁】{" "}
                     {news.race.is_test
                       ? "테스트 경주"
                       : `${dayLabel(news.race.day)} 제${news.race.no}경주(${kstTime(news.race.post_at)})`}{" "}
@@ -141,8 +141,8 @@ export default function RadioPopup({
                   )}
                   <p className="mono-13 text-fg-low mt-auto">
                     {news.left > 0
-                      ? `채널을 다시 맞추면 소식이 ${news.left}건 더 있다.`
-                      : "이 경주 소식은 여기까지다."}
+                      ? `채널을 다시 맞추면 소식이 ${news.left}건 더 있습니다.`
+                      : "이 경주 소식은 여기까지입니다."}
                   </p>
                 </>
               )}

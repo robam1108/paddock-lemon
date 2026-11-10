@@ -10,7 +10,7 @@ import MonoLabel from "./ui/MonoLabel";
 /**
  * 1:1 대전 진행 화면.
  *
- * 흑색구역이라 알려주는 게 적다 — 판돈과 남은 초, 그리고 지금까지의 승패만
+ * Arena 라 알려주는 게 적다 — 판돈과 남은 초, 그리고 지금까지의 승패만
  * 보인다. 상대가 뭘 쥐고 있는지, 이길 확률이 얼마인지는 아무도 안 알려준다.
  */
 
@@ -178,9 +178,9 @@ function AceChoicePopup({
           <MonoLabel tone="low">에이스 값 결정</MonoLabel>
         </div>
         <div className="flex flex-col gap-1 p-4">
-          <p className="title-19 text-fg-hi">에이스가 떴다. 1로 할까, 11로 할까.</p>
+          <p className="title-19 text-fg-hi">에이스가 나왔습니다. 1과 11 중 하나를 고르세요.</p>
           <p className="body-15 text-fg-mid">
-            한 번 고르면 이 카드는 바꿀 수 없다.
+            한 번 고르면 바꿀 수 없습니다.
           </p>
           <p className="mono-13 text-fg-low">
             지금 점수(이 에이스 제외) {score}
@@ -301,18 +301,18 @@ export default function MatchView({
         {match.result?.reason === "timeout" && (
           <p className="mono-13 text-fg-mid">
             {match.result.forfeited === match.role
-              ? "시간 초과. 기권 처리됐다."
-              : "상대가 시간 안에 답하지 않았다."}
+              ? "시간 초과. 기권 처리됐습니다."
+              : "상대가 시간 안에 답하지 않았습니다."}
           </p>
         )}
         {match.result?.reason === "bust" && (
           <p className="mono-13 text-fg-mid">
-            21을 넘겨 버스트로 판가름 났다.
+            21을 넘겨 버스트로 끝났습니다.
           </p>
         )}
         {match.result?.reason === "blackjack" && (
           <p className="mono-13 text-fg-mid">
-            첫 두 장으로 블랙잭이 나와 그 판이 바로 갈렸다.
+            첫 두 장으로 블랙잭이 나와 그 판이 바로 끝났습니다.
           </p>
         )}
 
@@ -323,7 +323,7 @@ export default function MatchView({
           }`}
         >
           {match.tie
-            ? "무승부. 건 코인은 그대로 돌아왔다."
+            ? "무승부. 건 코인은 그대로 돌아왔습니다."
             : match.won
               ? `${pot} 코인 회수.`
               : `${match.bet} 코인 손실.`}
@@ -376,7 +376,7 @@ export default function MatchView({
         {!rolled ? (
           <>
             <p className="mono-13 text-fg-mid">
-              {left}초 안에 안 굴리면 기권이다.
+              {left}초 안에 굴리지 않으면 기권 처리됩니다.
             </p>
             <button
               type="button"
@@ -438,7 +438,7 @@ export default function MatchView({
         {canAct ? (
           <>
             <p className="mono-13 text-fg-mid">
-              네 차례다. {left}초 안에 골라라.
+              내 차례입니다. {left}초 안에 골라 주세요.
             </p>
             <div className="grid grid-cols-2 gap-1.5">
               <button
@@ -464,11 +464,11 @@ export default function MatchView({
         ) : (
           <p className="mono-13 text-fg-mid">
             {pendingAce
-              ? "에이스 값부터 정해라."
+              ? "에이스 값을 먼저 정해 주세요."
               : match.their_pending_ace
                 ? `${match.opponent}가 에이스 값을 고르는 중 · ${left}초`
                 : match.my_stand
-                  ? `스탠드했다. ${match.opponent} 차례 · ${left}초`
+                  ? `스탠드했습니다. ${match.opponent} 차례 · ${left}초`
                   : `${match.opponent} 고민 중 · ${left}초`}
           </p>
         )}

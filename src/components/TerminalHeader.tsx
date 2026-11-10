@@ -9,12 +9,12 @@ import { identityOf } from "@/lib/identity";
 import type { Room } from "@/lib/rooms";
 import { useAdminPending } from "@/hooks/useAdminPending";
 import { usePetitionPending } from "@/hooks/usePetitionPending";
+import { LABEL } from "@/lib/copy";
 import {
-  FORM_LINE,
-  FORM_LINE_SHORT,
-  LABEL,
-  WATCH_NOTE,
-} from "@/lib/copy";
+  SITE_LINE,
+  SITE_LINE_SHORT,
+  LIVE_NOTE,
+} from "@/lib/site";
 import GuidePopup from "./GuidePopup";
 import PetitionBox from "./PetitionBox";
 import HpBar from "./HpBar";
@@ -22,11 +22,11 @@ import MonoLabel from "./ui/MonoLabel";
 import PendingDot from "./ui/PendingDot";
 
 /**
- * 서식 K-77 상단부.
+ * 상단 헤더.
  *
- * 두 단이다. 위 32px 은 시설이 찍어 둔 서식 스트립 — 누가 언제 무엇을 했는지
- * 남기려고 있는 줄이지, 사용자를 위한 줄이 아니다. 아래 84px 이 배급 행이다.
- * 체력·코인·배정이 나란히 놓이는데, 셋 다 권리가 아니라 배급이라 같은 모양이다.
+ * 두 단이다. 위 32px 은 사이트 이름과 접속 시간을 적은 띠,
+ * 아래 84px 이 상태 행이다.
+ * 에너지·코인·남은 판이 나란히 같은 모양으로 놓인다.
  *
  * 구획은 박스가 아니라 1px 세로 구분선으로만 나눈다.
  */
@@ -63,10 +63,10 @@ export default function TerminalHeader({
   supabase: SupabaseClient;
   /** 안내문의 방 배치도가 그대로 받아 쓴다 */
   rooms: Room[];
-  /** 아직 명단을 못 읽었으면 true. 배정된 사람이 0명인 것과 구분하기 위함. */
+  /** 아직 명단을 못 읽었으면 true. 룸에 배정된 사람이 0명인 것과 구분하기 위함. */
   roomsLoading: boolean;
   onExit: () => void;
-  /** 정지 통보 팝업이 "이의 제기"로 진정함을 직접 열 수 있도록 상위(Casino)가 들고 있다 */
+  /** 정지 통보 팝업이 "문의하기"로 피드백을 직접 열 수 있도록 상위(Casino)가 들고 있다 */
   petitionsOpen: boolean;
   onPetitionsOpenChange: (open: boolean) => void;
 }) {
@@ -83,11 +83,11 @@ export default function TerminalHeader({
 
   return (
     <header className="border-line-soft border bg-bg-1">
-      {/* ── 서식 스트립 32px ── */}
+      {/* ── 사이트 띠 32px ── */}
       <div className="scanline border-line-soft flex min-h-8 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b px-3.5 py-1.5">
         <MonoLabel tone="low">
-          <span className="hidden tab:inline">{FORM_LINE}</span>
-          <span className="tab:hidden">{FORM_LINE_SHORT}</span>
+          <span className="hidden tab:inline">{SITE_LINE}</span>
+          <span className="tab:hidden">{SITE_LINE_SHORT}</span>
         </MonoLabel>
 
         <div className="flex items-center gap-3">
@@ -105,7 +105,7 @@ export default function TerminalHeader({
           )}
           <MonoLabel tone="low">세션 {clock}</MonoLabel>
           <MonoLabel tone="low" className="hidden tab:inline">
-            {WATCH_NOTE}
+            {LIVE_NOTE}
           </MonoLabel>
         </div>
       </div>
@@ -134,9 +134,9 @@ export default function TerminalHeader({
         </div>
       )}
 
-      {/* ── 배급 행 84px ── */}
+      {/* ── 상태 행 84px ── */}
       <div className="flex flex-col items-stretch gap-y-3 px-3.5 py-3 desk:min-h-21 desk:flex-row desk:flex-nowrap desk:gap-x-0 desk:py-0">
-        {/* 신원 */}
+        {/* 플레이어 */}
         <div className="flex items-center gap-3 desk:pr-5">
           <div className="border-line flex w-[74px] shrink-0 flex-col items-center justify-center gap-1 border bg-surface py-2">
             <MonoLabel tone="low">{LABEL.no}</MonoLabel>
@@ -144,10 +144,10 @@ export default function TerminalHeader({
           </div>
           <div className="min-w-0">
             <MonoLabel tone="low">
-              수용 {me.no} · {state.cell ?? "-"}
+              {me.no} · 룸 {state.cell ?? "-"}
             </MonoLabel>
-            {/* 형기는 전원 무기 징역이라 여기 적으면 정보가 아니라 잡음이다.
-                신상 탭의 신원표 카드가 유일하게 적는다. */}
+            {/* 상태 메시지는 프로필 카드에만 적는다.
+                헤더는 숫자만 둔다. */}
             <span className="title-19 text-fg-hi mt-1 block truncate">
               {state.username}
             </span>
@@ -156,7 +156,7 @@ export default function TerminalHeader({
 
         <Divider />
 
-        {/* 체력 배급 */}
+        {/* 에너지 */}
         <div className="min-w-[220px] flex-1 desk:self-center desk:px-5">
           <HpBar
             hp={state.hp}
@@ -167,7 +167,7 @@ export default function TerminalHeader({
 
         <Divider />
 
-        {/* 코인 · 배정 · 종료 — 좁은 화면에서 버튼이 넘치지 않게 줄바꿈 허용 */}
+        {/* 코인 · 남은 판 · 로그아웃 — 좁은 화면에서 버튼이 넘치지 않게 줄바꿈 허용 */}
         <div className="flex flex-1 flex-wrap items-center gap-x-5 gap-y-3 desk:flex-none desk:pl-5">
           <div className="flex flex-col gap-1">
             <MonoLabel>{LABEL.coins}</MonoLabel>
@@ -189,9 +189,9 @@ export default function TerminalHeader({
           </div>
 
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2 self-center">
-            {/* 관리자는 진정함을 관리자 단말에서 보므로 이 자리엔 진정함
+            {/* 관리자는 피드백을 관리자 화면에서 보므로 이 자리엔 피드백
                 버튼을 두지 않는다. 양쪽 다 확인할 게 있으면 초록 점만 얹는다 —
-                관리자는 미답변 대기, 수감자는 도착한 관리자 답변. */}
+                관리자는 미답변 대기, 플레이어는 도착한 관리자 답변. */}
             {state.is_admin ? (
               <Link
                 href="/admin"

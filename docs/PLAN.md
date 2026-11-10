@@ -32,7 +32,8 @@ mini-casino는 콘셉트 문구를 갈아끼우는 리스킨만으로 공개용 
 
 - **경마장**: 말 20두의 능력치 모델, 숨은 컨디션 5단계, 공개 정보만으로 돌리는 몰테카를로(1500회) 고정배당, 공제율 파라미터, 단승·연승·복승, 10구간 스플릿 타임을 보간해 그리는 레이스 중계, 정산 `pg_cron` + lazy 보조 정산, 시험 경주 모드
 - 서버 판정 4게임(룰렛·슬롯·하이로우·키노)과 `play_game()`, RLS 구조
-- 1:1 대전(주사위·인디언포커·블랙잭), 라스트카드
+- 1:1 대전(주사위·인디언포커·블랙잭)
+- ~~라스트카드~~ → 제외 (P1에서 확인: 밀거래 해금·특별 상품 전용 미니게임이라 밀거래와 함께 뺐다. 필요하면 Arena 종목으로 다시 붙인다.)
 - 개인 거래와 원장(ledger), 아이템/상점, 관리자 패널
 - Realtime Presence 접속자, 실시간 결과 피드, 일일 리셋(KST, cron)
 - `usePendingSettle`: 애니메이션이 끊기더라도 정산은 반드시 흘려보내는 훅
@@ -156,9 +157,9 @@ mini-casino는 콘셉트 문구를 갈아끼우는 리스킨만으로 공개용 
 
 ### Claude Code가 구현하며 결정할 열린 항목
 
-- [ ] 고양이 선물 중립화 제안: 죽은 새(판돈 보너스) → 깃털(그대로 유지), 죽은 쥐(훔치기 성공률) → 장난감 쥐(탐험 드랍 확률 보너스로 대체), 죽은 벌레(다음 작업 보상 등급) → 나비(미션 보상 등급, 그대로 유지)
-- [ ] 회원가입 개방 여부 (기본값: 개방하지 않고 관리자 발급 유지)
-- [ ] `NO.`(수용번호) 표기를 대체할 플레이어 번호 형식 (제안: `#0001`)
+- [x] 고양이 선물 중립화 제안: 죽은 새(판돈 보너스) → 깃털(그대로 유지), 죽은 쥐(훔치기 성공률) → 장난감 쥐(탐험 드랍 확률 보너스로 대체), 죽은 벌레(다음 작업 보상 등급) → 나비(미션 보상 등급, 그대로 유지) — **제안대로 채택.** P1은 문구만 바꿨고, 코드값(`dead_*` → `feather`·`toy_mouse`·`butterfly`)과 장난감 쥐 효과는 P2에서 서버와 함께 바꾼다.
+- [x] 회원가입 개방 여부 — **개방하지 않는다.** 관리자 발급 + (P5) 게스트 체험.
+- [x] 플레이어 번호 형식 — **`#0001`.** P1은 아이디 해시로 계산(`identity.ts`), P2에서 profiles 발급 순번으로 바꾼다.
 
 ## 8. 단계별 작업 지시서
 
@@ -184,15 +185,25 @@ git grep -nE '병동|가축|배급소|밀거래|수감|죄수|교정|무간|흑�
 
 ### P1. 클라이언트 용어 중립화 (2\~3일)
 
-- [ ] `src/lib/copy.ts`(864줄)의 문구를 중립 UI 문구로 전면 교체한다. `FACILITY`, `FORM_NO`, `FORM_LINE` 같은 시설 상수는 `src/lib/site.ts`의 설정(이름 Paddock)으로 옮긴다.
-- [ ] 3절의 매핑표를 적용한다: 체력→에너지, 병동→휴식, 백색구역→Casual, 흑색구역→Arena, 배급소→상점, 작업장→일일 미션, 탐색→탐험, 수감기록→프로필, 진정함→피드백, 소식→친구 피드.
-- [ ] 로그인 화면 `src/app/login/LoginForm.tsx`와 `src/lib/auth.ts`를 아이디/비밀번호 형식으로 바꾼다(DB 쪽은 P2). `NO.` 표기는 플레이어 번호로 바꾼다.
-- [ ] `rules.ts`, `guide.ts`, `identity.ts`, `gear.ts`, `labor.ts`, `radio.ts`, `rooms.ts`의 문자열도 정리한다.
-- [ ] 가축·약물·훔치기·밀거래·추석·병동 사다리 UI를 제거한다(`Smuggle.tsx`, `ChuseokPopup.tsx` 등. 나머지 위치는 금지어 grep으로 찾는다).
-- [ ] 고양이(`CatPopup.tsx`, `CatGiftPopup.tsx`, `CatTestPanel.tsx`)는 유지하고 문구만 중립화한다.
-- [ ] `scripts/check-theme.sh`를 추가한다.
+- [x] `src/lib/copy.ts`(864줄)의 문구를 중립 UI 문구로 전면 교체한다. `FACILITY`, `FORM_NO`, `FORM_LINE` 같은 시설 상수는 `src/lib/site.ts`의 설정(이름 Paddock)으로 옮긴다.
+- [x] 3절의 매핑표를 적용한다: 체력→에너지, 병동→휴식, 백색구역→Casual, 흑색구역→Arena, 배급소→상점, 작업장→일일 미션, 탐색→탐험, 수감기록→프로필, 진정함→피드백, 소식→친구 피드.
+- [x] 로그인 화면 `src/app/login/LoginForm.tsx`와 `src/lib/auth.ts`를 아이디/비밀번호 형식으로 바꾼다(DB 쪽은 P2). `NO.` 표기는 플레이어 번호로 바꾼다.
+- [x] `rules.ts`, `guide.ts`, `identity.ts`, `gear.ts`, `labor.ts`, `radio.ts`, `rooms.ts`의 문자열도 정리한다.
+- [x] 가축·약물·훔치기·밀거래·추석·병동 사다리 UI를 제거한다(`Smuggle.tsx`, `ChuseokPopup.tsx` 등. 나머지 위치는 금지어 grep으로 찾는다).
+- [x] 고양이(`CatPopup.tsx`, `CatGiftPopup.tsx`, `CatTestPanel.tsx`)는 유지하고 문구만 중립화한다.
+- [x] `scripts/check-theme.sh`를 추가한다.
 
 완료 기준: `src/`에서 금지어 0건, `npm run build` 통과.
+
+> P1 결과(2026-11-10): `bash scripts/check-theme.sh src` 0건, `tsc --noEmit`·`npm run build` 통과. 줄바꿈을 LF로 통일하고 `.gitattributes`를 추가했다. 삭제: `Smuggle.tsx`, `ChuseokPopup.tsx`, `LastCard.tsx`, 상점 훔치기, 가축·호칭권, 약물·중독·담배 분기, 송편. 사이트 설정은 `src/lib/site.ts`, 푸터·로그인에 고지 문구 표시. DB가 아직 원본 구조라 로그인·게임 동작은 P2에서 확인한다.
+>
+> **P2로 넘기는 것 (P1에서 확인한 클라이언트–DB 계약)**
+> - 인증: 클라이언트는 `아이디@paddock.local` + 비밀번호로 로그인한다. `name_to_email`·`handle_new_user`·`admin_create_player`를 이 규칙으로 바꾼다. 관리자 화면의 "초기 비밀번호 보기" 표는 평문 보관이므로 P2에서 없앤다.
+> - `set_profile_details`에서 `p_livestock_consent` 인자를 뺀다(클라이언트는 이미 보내지 않는다). 컬럼 `crime`은 화면에서 "상태 메시지"로 쓴다 → `status_message`로 개명 검토.
+> - RPC·컬럼 이름에 남은 원본 용어: `inmate_roster`, `in_ward`/`ward_left`/`ward_cut`, `hp*`(=에너지), `petition*`(=피드백), `cell*`(=룸), 장소 코드 `cell/mess/shower/works/infirm`, 미션 코드 `latrine` 등. 서버와 함께 바꿀 때 클라이언트 타입(`game.ts`)도 같이 고친다.
+> - 삭제된 기능의 RPC(`shop_steal`, `smuggle_*`, `lastcard_*`, `livestock_use`, `title_use`, `use_songpyeon`, `chuseok_*`)는 마이그레이션에 옮기지 않는다. `state_json`에서 `drug_*`·`addicted`·`addict_lines`·`withdrawal`·`steal_sure`·`livestock_*`·`chuseok` 필드도 뺀다.
+> - 아이템 카탈로그: `tobacco`·`drug`·`adult`·`trick`·`event` 종류와 해당 품목을 seed에서 뺀다. `medicine` 종류는 "회복"으로 표시한다.
+> - 고양이: `CatStatus.steal_ready` 제거, 장난감 쥐의 탐험 보너스 상태 필드 추가.
 
 ### P2. DB 재구성 (3\~5일, 가장 큰 단계)
 

@@ -6,9 +6,9 @@ import ItemMark from "./ui/ItemMark";
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * 술·약물·젤·구운 고구마·구운 생선 중 함께 쓸 수 있는 것(item.shareable)을 쓰기 전에 뜨는 창.
- * 혼자 쓰거나, 수감자 한 명을 골라 함께 쓴다 — 함께 쓰면 고른 사람에게도
- * 특이사항이 붙는다. 병동에 있는 사람과 본인은 목록에 아예 나오지 않는다
+ * 음료·구운 고구마·구운 생선 중 함께 쓸 수 있는 것(item.shareable)을 쓰기 전에 뜨는 창.
+ * 혼자 쓰거나, 플레이어 한 명을 골라 함께 쓴다 — 함께 쓰면 고른 사람에게도
+ * 프로필 표시가 붙는다. 휴식 중인 사람과 본인은 목록에 아예 나오지 않는다
  * (mates 를 넘기는 쪽이 이미 걸러 준다).
  */
 export default function SharePopup({
@@ -61,12 +61,12 @@ export default function SharePopup({
 
           <p className="body-15 text-fg-mid mt-2">
             {item.kind === "food"
-              ? "함께 먹으면 고른 사람도 같은 효과를 받는다. 물건은 내 것 하나만 쓴다."
-              : "함께 쓰면 고른 사람에게도 특이사항이 붙는다. 물건은 내 것 하나만 쓴다."}
+              ? "함께 먹으면 고른 사람도 같은 효과를 받습니다. 물건은 내 것 하나만 씁니다."
+              : "함께 쓰면 고른 사람의 프로필에도 표시가 붙습니다. 물건은 내 것 하나만 씁니다."}
           </p>
 
           {mates.length === 0 ? (
-            <p className="body-15 text-fg mt-2">지금 함께할 사람이 없다.</p>
+            <p className="body-15 text-fg mt-2">지금 함께할 사람이 없습니다.</p>
           ) : (
             <select
               value={picked}

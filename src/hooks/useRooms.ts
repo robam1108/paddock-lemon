@@ -18,13 +18,13 @@ function cellOrder(label: string): [number, number] {
 }
 
 /**
- * 방 배치도(안내문)용. 배정 자체는 DB(app.assign_cell() / 매주 월요일 06:00 KST 에
+ * 룸 배치(안내)용. 배정 자체는 DB(app.assign_cell() / 매주 월요일 06:00 KST 에
  * 도는 app.cell_rotate())가 이미 정해 두었으므로,
  * 여기서는 inmate_roster() 가 주는 cell_id/cell 을 그대로 묶기만 한다 —
- * 다시 계산하지 않으므로 신원표(state.cell)와 항상 일치한다.
+ * 다시 계산하지 않으므로 프로필(state.cell)과 항상 일치한다.
  *
  * public.cells 는 RLS 정책이 없어 클라이언트가 직접 못 읽는다. inmate_roster() 는
- * 배정된 사람이 있는 방만 보여 주므로, 빈 수용실은 배치도에 나타나지 않는다.
+ * 배정된 사람이 있는 룸만 보여 주므로, 빈 룸은 배치에 나타나지 않는다.
  */
 export function useRooms(supabase: SupabaseClient) {
   const [roster, setRoster] = useState<RosterRow[] | null>(null);
@@ -45,13 +45,13 @@ export function useRooms(supabase: SupabaseClient) {
     };
   }, [supabase]);
 
-  /** 명단을 다시 읽는다 — 함께 쓰기 팝업이 열릴 때 병동 여부를 새로 맞춘다. */
+  /** 명단을 다시 읽는다 — 함께 쓰기 팝업이 열릴 때 휴식 여부를 새로 맞춘다. */
   const reload = useCallback(async () => {
     const { data } = await supabase.rpc("inmate_roster");
     if (data) setRoster(data as RosterRow[]);
   }, [supabase]);
 
-  /** 함께 쓰기에서 고를 수 있는 사람 — 병동에 있는 사람은 뺀다(방 배정 여부는 무관). */
+  /** 함께 쓰기에서 고를 수 있는 사람 — 휴식 중인 사람은 뺀다(방 배정 여부는 무관). */
   const mates = useMemo(
     () => (roster ?? []).filter((r) => !r.in_ward).map((r) => r.username),
     [roster],
@@ -92,7 +92,7 @@ export function useRooms(supabase: SupabaseClient) {
     return map;
   }, [rooms]);
 
-  /** 아직 명단을 못 읽었거나 수용실이 배정되지 않은 이름이면 null. */
+  /** 아직 명단을 못 읽었거나 룸이 배정되지 않은 이름이면 null. */
   const cellOf = useMemo(
     () => (username: string) => cells.get(username) ?? null,
     [cells],

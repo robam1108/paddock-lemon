@@ -53,7 +53,7 @@ export default function BetSlip({
   const value = Math.max(minBet, Math.min(amount, Math.max(minBet, cap)));
   const need = kind === "quin" ? 2 : 1;
   const odds = ticketOdds(race, kind, picks);
-  // 정식 경주는 마권 한 장마다 체력 1(서버 app.hp_per_play)
+  // 정식 경주는 베팅 한 장마다 에너지 1(서버 app.hp_per_play)
   const noHp = !race.is_test && hp < 1;
   const ready = canBet && !noHp && picks.length === need && odds !== null && !busy;
 
@@ -106,10 +106,10 @@ export default function BetSlip({
 
       <p className="mono-13 text-fg-low">
         이 경주 {spent} / {maxBet}코인 · 한 장 최소 {minBet}
-        {race.is_test ? " · 테스트 경주라 코인·체력이 움직이지 않는다" : " · 한 장마다 체력 1"}
-        {noHp ? " · 체력이 모자란다" : ""}
-        {!canBet && !race.is_test && room >= minBet ? " · 코인이 모자란다" : ""}
-        {room < minBet ? " · 이 경주 한도를 다 썼다" : ""}
+        {race.is_test ? " · 테스트 경주라 코인·에너지가 움직이지 않습니다" : " · 한 장마다 에너지 1"}
+        {noHp ? " · 에너지가 부족합니다" : ""}
+        {!canBet && !race.is_test && room >= minBet ? " · 코인이 부족합니다" : ""}
+        {room < minBet ? " · 이 경주 한도를 모두 썼습니다" : ""}
       </p>
     </div>
   );

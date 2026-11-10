@@ -5,9 +5,9 @@ import ItemMark from "./ui/ItemMark";
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * 자리를 비운 사이 체력이 0까지 떨어졌을 때 뜨는 창.
+ * 자리를 비운 사이 에너지가 0까지 떨어졌을 때 뜨는 창.
  *
- * 게임을 하다 0이 된 경우에는 곧바로 병동으로 가므로 이 창은 뜨지 않는다.
+ * 게임을 하다 0이 된 경우에는 곧바로 휴식으로 가므로 이 창은 뜨지 않는다.
  * 시간이 흘러서 쓰러진 경우에만, 가진 음식을 바로 먹을 기회를 준다.
  */
 export default function CollapsePopup({
@@ -19,7 +19,7 @@ export default function CollapsePopup({
   busy: boolean;
   onUse: (code: string) => void;
 }) {
-  // 병동 밖에서 지금 바로 회복에 쓸 수 있는 것만
+  // 휴식 전에 지금 바로 회복에 쓸 수 있는 것만
   const food = (state.items ?? []).filter(
     (i) => i.heal > 0 && i.qty > 0,
   );
@@ -28,18 +28,18 @@ export default function CollapsePopup({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-bg-0/80 p-4 tab:items-center">
       <div className="border-line w-full max-w-sm border bg-bg-1">
         <div className="border-line-soft border-b bg-surface px-4 py-2">
-          <MonoLabel tone="low">체력 소진 통보</MonoLabel>
+          <MonoLabel tone="low">에너지 소진</MonoLabel>
         </div>
 
         <div className="flex flex-col gap-1 p-4">
-          <p className="title-19 text-loss">체력이 0이 되었다.</p>
+          <p className="title-19 text-loss">에너지가 0이 되었습니다.</p>
           <p className="body-15 text-fg-mid">
-            자리를 비운 사이 떨어졌다. 지금 뭔가 먹으면 아직 안 실려 간다.
+            자리를 비운 사이 바닥났습니다. 지금 뭔가 먹으면 휴식에 들어가지 않습니다.
           </p>
 
           {food.length === 0 ? (
             <p className="scanline-faint mono-13 border-line mt-3 border border-dashed bg-bg-2 px-3 py-3 text-center text-fg">
-              먹을 것이 없다. 곧 병동으로 옮겨진다.
+              먹을 것이 없습니다. 곧 휴식이 시작됩니다.
             </p>
           ) : (
             <ul className="mt-3 flex flex-col gap-1.5">
@@ -76,7 +76,7 @@ export default function CollapsePopup({
           )}
 
           <p className="mono-13 text-fg-low mt-3">
-            체력이 0인 동안에는 판에 앉을 수 없다.
+            에너지가 0인 동안에는 게임을 할 수 없습니다.
           </p>
         </div>
       </div>

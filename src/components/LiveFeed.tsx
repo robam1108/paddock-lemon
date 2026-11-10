@@ -28,7 +28,7 @@ type Round = {
   created_at: string;
 };
 
-/** 흑색구역 대전은 3판 2승제라 최종 승수로 보여준다. */
+/** Arena 대전은 3판 2승제라 최종 승수로 보여준다. */
 function describePvp(r: Round): string {
   const side = r.outcome.side as string;
   const pick = (host: string, guest: string) =>
@@ -44,7 +44,7 @@ function describePvp(r: Round): string {
 
 /**
  * 모두가 보는 공개 피드는 결과만 짧게 알린다: "슬롯 승리", "룰렛 패",
- * "하이로우 (3단계) 승리". 카드 흐름 같은 자세한 내역은 본인 수감기록에만 남는다.
+ * "하이로우 (3단계) 승리". 카드 흐름 같은 자세한 내역은 본인 프로필 기록에만 남는다.
  */
 function describe(r: Round): string {
   const name = GAME_CODE[r.game] ?? r.game;

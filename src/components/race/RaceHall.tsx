@@ -26,7 +26,7 @@ const DISTANCES = [1000, 1200, 1400, 1600, 1800, 2000];
 const wd = (d: number) => (d > 0 ? `+${d}` : String(d));
 
 /**
- * 흑색구역 › 경마장.
+ * Arena › 경마장.
  *
  * 출전표는 발주 전까지 배당만 보여준다 — 결과는 서버에도 아직 없다. 열려 있던
  * 경주가 끝난 것을 폴링이 알아채면(발주 2분 전부터 3초 간격) 그 자리에서
@@ -155,7 +155,7 @@ export default function RaceHall({
         setError(toKoreanError(e?.message));
       } else {
         if (!sel.is_test) onState(data as PlayerState);
-        setNotice(`${KIND_NAME[kind]} ${picks.join("-")} · ${value}코인 마권을 샀다.`);
+        setNotice(`${KIND_NAME[kind]} ${picks.join("-")} · ${value}코인 베팅했습니다.`);
         setPicks([]);
       }
     } catch (e) {
@@ -186,7 +186,7 @@ export default function RaceHall({
       const c = data as RaceCard;
       if (action !== "reset_tips" && c.test) setSelId(c.test.id);
       if (action === "create") setPlay(null);
-      if (action === "reset_tips") setNotice("라디오 속보 한도를 되돌렸다.");
+      if (action === "reset_tips") setNotice("인사이더 팁 한도를 되돌렸습니다.");
       apply(c);
     } catch (e) {
       setError(toKoreanError(e instanceof Error ? e.message : undefined));
@@ -218,7 +218,7 @@ export default function RaceHall({
   return (
     <div className="flex flex-col gap-2">
       <div className="bg-bg-1 flex flex-wrap items-baseline justify-between gap-2 px-3 py-2">
-        <MonoLabel>무간 경마장{card.public ? "" : " · 비공개"}</MonoLabel>
+        <MonoLabel>Paddock 경마장{card.public ? "" : " · 비공개"}</MonoLabel>
         <span className="mono-13 text-fg-low">
           매일 10:00 · 22:00 발주 · 8두 출전 · 발주 시각에 발매 마감
         </span>
@@ -256,7 +256,7 @@ export default function RaceHall({
               [
                 ["create", "테스트 경주 편성"],
                 ["start", "지금 발주"],
-                ["reset_tips", "속보 초기화"],
+                ["reset_tips", "팁 초기화"],
               ] as const
             ).map(([a, label]) => (
               <button

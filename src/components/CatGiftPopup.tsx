@@ -9,7 +9,7 @@ import ItemMark from "./ui/ItemMark";
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * 고양이의 보은. 소지품 탭에 들어갈 때 도착한 것이 있으면 뜬다.
+ * 고양이의 선물. 소지품 탭에 들어갈 때 도착한 것이 있으면 뜬다.
  *
  * 여러 개가 쌓여 있으면 하나씩 받기 · 버리기를 고른다(public.cat_gift_resolve).
  * 고른 뒤에는 결과 한 줄을 보여 주고 다음 것으로 넘어간다.
@@ -77,7 +77,7 @@ export default function CatGiftPopup({
     <div className="bg-bg-0/80 fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="border-line w-full max-w-xs border bg-bg-1">
         <div className="border-line-soft flex items-center justify-between border-b px-4 py-3">
-          <MonoLabel>{catName(name)}의 보은</MonoLabel>
+          <MonoLabel>{catName(name)}의 선물</MonoLabel>
           {gifts.length > 1 && (
             <MonoLabel tone="low">
               {index + 1}/{gifts.length}

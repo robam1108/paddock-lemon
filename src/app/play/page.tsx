@@ -51,7 +51,7 @@ export default async function PlayPage() {
             <span className="label-11 text-fg-low">조회 실패</span>
           </div>
           <div className="flex flex-col gap-1 p-4">
-            <p className="title-19 text-loss">대장을 읽지 못했다.</p>
+            <p className="title-19 text-loss">프로필을 불러오지 못했습니다.</p>
             <p className="mono-13 text-fg-mid break-all">{error}</p>
 
             <a
@@ -64,7 +64,7 @@ export default async function PlayPage() {
             <p className="body-15 text-fg-low mt-2">
               {schemaMissing
                 ? "Supabase 에서 supabase/APPLY.md 의 순서대로 SQL 을 실행했는지 확인할 것."
-                : "일시적인 장애일 수 있다. 반복되면 관리자에게 문의하라."}
+                : "일시적인 장애일 수 있습니다. 반복되면 관리자에게 문의해 주세요."}
             </p>
           </div>
         </main>

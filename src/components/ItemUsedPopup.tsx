@@ -3,7 +3,7 @@
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * 소지품에서 쓰거나 착용한 직후 뜨는 팝업. 무엇을 했고 체력·횟수가 어떻게
+ * 소지품에서 쓰거나 착용한 직후 뜨는 팝업. 무엇을 했고 에너지·횟수가 어떻게
  * 바뀌었는지(lines), 이번에 붙은 특이사항(notes)을 보여준다.
  * 문장은 copy.ts 의 usedItemLines 가 만든다.
  */

@@ -24,12 +24,12 @@ import {
   type TradeLedgerConfiscateResult,
   type TradeRevertResult,
 } from "@/lib/game";
+import { LABEL } from "@/lib/copy";
 import {
-  FORM_LINE,
-  FORM_LINE_SHORT,
-  LABEL,
-  WATCH_NOTE,
-} from "@/lib/copy";
+  SITE_LINE,
+  SITE_LINE_SHORT,
+  LIVE_NOTE,
+} from "@/lib/site";
 import { laborTitle } from "@/lib/labor";
 import Panel from "./ui/Panel";
 import MonoLabel from "./ui/MonoLabel";
@@ -41,12 +41,12 @@ import {
 } from "./ui/PhotoAttach";
 
 /**
- * 관리자 단말 — 게임 화면과 같은 서식(K-77) 골격을 쓴다.
+ * 관리자 화면 — 게임 화면과 같은 헤더 골격을 쓴다.
  * 표면 5단계 · 놋쇠 강조 · 등폭 라벨. 색은 상태선에만 얹는다.
  *
- * 위에서 아래 순서: 플레이어 추가 → 진정함 → 관계 신청 → 플레이어 목록/상세
+ * 위에서 아래 순서: 플레이어 추가 → 피드백 → 친구 신청 → 플레이어 목록/상세
  * → 플레이어 삭제 → 코인 지급 → 아이템 지급 → 게임 횟수 → 유저 간 거래.
- * 매일 손이 가는 것(추가·진정·관계·조회)을 위에, 파괴적이거나 드문 것
+ * 매일 손이 가는 것(추가·피드백·친구·조회)을 위에, 파괴적이거나 드문 것
  * (삭제·지급류·거래 열람/취소)을 아래에 둔다.
  */
 
@@ -95,7 +95,7 @@ const DANGER =
 /**
  * 지급·회수 사유. 분류 셋 중 하나와 자유 메모 한 줄을 받는다.
  *
- * 여기서 고른 값은 받은 사람의 "수감기록 > 기록"에 그대로 뜬다 — 관리자만
+ * 여기서 고른 값은 받은 사람의 "프로필 > 기록"에 그대로 뜬다 — 관리자만
  * 보는 메모가 아니다. 둘 다 비워 둘 수 있지만, 비워 두면 유저 쪽에는
  * "관리 · 코인 30개 지급" 한 줄만 남아 왜 받았는지 알 수 없다.
  */
@@ -202,7 +202,7 @@ export default function AdminPanel({ username }: { username: string }) {
   const [rejectTarget, setRejectTarget] = useState<AdminRelation | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  // 진정함
+  // 피드백
   const [petitions, setPetitions] = useState<AdminPetition[]>([]);
   const [petitionThread, setPetitionThread] = useState<PetitionThread | null>(
     null,
@@ -819,7 +819,7 @@ export default function AdminPanel({ username }: { username: string }) {
     const r = data as { petitions: AdminPetition[]; image_paths: string[] };
     setPetitions(r.petitions ?? []);
     if (petitionThread?.id === id) setPetitionThread(null);
-    // 첨부 사진은 SQL 로 지울 수 없어 여기서 Storage API 로 지운다. 진정은
+    // 첨부 사진은 SQL 로 지울 수 없어 여기서 Storage API 로 지운다. 피드백은
     // 이미 지워졌으므로 실패해도 무시한다 — 가리키는 글이 없어 열리지 않는다.
     if (r.image_paths?.length) {
       await supabase.storage.from("petitions").remove(r.image_paths);
@@ -902,19 +902,19 @@ export default function AdminPanel({ username }: { username: string }) {
   return (
     <main className="bg-bg-0 min-h-dvh px-3 pb-10 pt-3">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
-        {/* ── 서식 헤더 ── */}
+        {/* ── 헤더 ── */}
         <header className="border-line border bg-bg-1">
           <div className="scanline border-line-soft flex min-h-8 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b px-3.5 py-1.5">
             <MonoLabel tone="low">
-              <span className="hidden tab:inline">{FORM_LINE}</span>
-              <span className="tab:hidden">{FORM_LINE_SHORT}</span>
+              <span className="hidden tab:inline">{SITE_LINE}</span>
+              <span className="tab:hidden">{SITE_LINE_SHORT}</span>
             </MonoLabel>
-            <MonoLabel tone="low">{WATCH_NOTE}</MonoLabel>
+            <MonoLabel tone="low">{LIVE_NOTE}</MonoLabel>
           </div>
           <div className="flex items-center gap-3 px-3.5 py-3">
             <div className="min-w-0">
               <MonoLabel tone="low">{LABEL.admin}</MonoLabel>
-              <div className="title-19 text-fg-hi mt-1">관리자 단말</div>
+              <div className="title-19 text-fg-hi mt-1">관리자</div>
             </div>
             <MonoLabel tone="mid" className="truncate">
               {username}
@@ -940,14 +940,14 @@ export default function AdminPanel({ username }: { username: string }) {
         <Panel className="flex flex-col gap-2">
           <SectionHead
             title="플레이어 추가"
-            desc="이름만 넣으면 겹치지 않는 코드를 서버가 자동으로 만들어 발급한다."
+            desc="아이디만 넣으면 서버가 초기 비밀번호를 만들어 발급합니다."
           />
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addPlayer()}
-              placeholder="이름 (예: 홍길동)"
+              placeholder="아이디 (예: demo01)"
               className={FIELD}
             />
             <button
@@ -967,17 +967,17 @@ export default function AdminPanel({ username }: { username: string }) {
                 {issued.code}
               </p>
               <p className="mono-13 text-fg-low mt-1">
-                이 코드를 본인에게 전달하라.
+                이 비밀번호를 본인에게 전달해 주세요.
               </p>
             </div>
           )}
         </Panel>
 
-        {/* ── 진정함 ── */}
+        {/* ── 피드백 ── */}
         <Panel className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <h2 className="title-19 text-fg-hi">
-              진정함{" "}
+              피드백{" "}
               {petitions.filter((p) => p.status === "open").length}건 미답변
             </h2>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
@@ -1017,13 +1017,13 @@ export default function AdminPanel({ username }: { username: string }) {
           </div>
           {petitionSelectMode && (
             <p className="mono-13 text-fg-low">
-              종결된 진정만 선택할 수 있다.
+              종료된 피드백만 선택할 수 있다.
             </p>
           )}
 
           {petitions.length === 0 ? (
             <p className="scanline-faint mono-13 text-fg-low border-line border border-dashed px-3 py-6 text-center">
-              접수된 진정이 없다.
+              접수된 피드백이 없다.
             </p>
           ) : (
             <>
@@ -1175,7 +1175,7 @@ export default function AdminPanel({ username }: { username: string }) {
 
               {petitionThread.status === "closed" ? (
                 <p className="mono-13 text-fg-low mt-2 text-center">
-                  종결된 진정이라 답변을 더 달 수 없다.
+                  종료된 피드백이라 답변을 더 달 수 없다.
                 </p>
               ) : (
                 <div className="mt-2 flex flex-col gap-2">
@@ -1184,7 +1184,7 @@ export default function AdminPanel({ username }: { username: string }) {
                     onChange={(e) => setPetitionReply(e.target.value)}
                     maxLength={500}
                     rows={3}
-                    placeholder="답변을 적어라. 신청자에게 '관리자'로만 표시된다."
+                    placeholder="답변을 적어 주세요. 작성자에게는 '관리자'로만 표시됩니다."
                     className={`${FIELD} min-h-20 resize-none`}
                   />
                   <div className="flex items-end justify-end gap-2">
@@ -1203,7 +1203,7 @@ export default function AdminPanel({ username }: { username: string }) {
           )}
         </Panel>
 
-        {/* ── 진정 삭제 확인 팝업 ── */}
+        {/* ── 피드백 삭제 확인 팝업 ── */}
         {petitionDeleteTarget && (
           <div
             className="bg-bg-0/80 fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1244,7 +1244,7 @@ export default function AdminPanel({ username }: { username: string }) {
           </div>
         )}
 
-        {/* ── 진정 일괄 삭제 확인 팝업 ── */}
+        {/* ── 피드백 일괄 삭제 확인 팝업 ── */}
         {petitionBulkConfirm && (
           <div
             className="bg-bg-0/80 fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1259,7 +1259,7 @@ export default function AdminPanel({ username }: { username: string }) {
               </div>
               <div className="flex flex-col gap-2 p-4">
                 <p className="body-15 text-fg">
-                  종결된 진정 {petitionSelected.size}건을 삭제한다. 되돌릴 수
+                  종료된 피드백 {petitionSelected.size}건을 삭제한다. 되돌릴 수
                   없다.
                 </p>
                 <div className="flex gap-2">
@@ -1418,7 +1418,7 @@ export default function AdminPanel({ username }: { username: string }) {
                   onChange={(e) => setRejectReason(e.target.value)}
                   maxLength={300}
                   rows={4}
-                  placeholder="반려 사유를 적어라. 신청자에게 그대로 보인다."
+                  placeholder="반려 사유를 적어 주세요. 신청자에게 그대로 보입니다."
                   className={`${FIELD} min-h-24 resize-none`}
                 />
                 {error && <p className="mono-13 text-loss">{error}</p>}
@@ -1453,7 +1453,7 @@ export default function AdminPanel({ username }: { username: string }) {
               onClick={() => setShowCodes((v) => !v)}
               className={`${SMALL} ml-auto`}
             >
-              {showCodes ? "코드 숨기기" : "코드 보기"}
+              {showCodes ? "초기 비밀번호 숨기기" : "초기 비밀번호 보기"}
             </button>
             <button onClick={load} className={SMALL}>
               새로고침
@@ -1471,10 +1471,10 @@ export default function AdminPanel({ username }: { username: string }) {
             <table className="w-full min-w-[38rem] text-left">
               <thead>
                 <tr className="label-11 text-fg-low border-line-soft border-b">
-                  <th className="pb-2 pr-2 font-normal">이름</th>
-                  <th className="pb-2 pr-2 font-normal">코드</th>
+                  <th className="pb-2 pr-2 font-normal">아이디</th>
+                  <th className="pb-2 pr-2 font-normal">초기 비밀번호</th>
                   <th className="pb-2 pr-2 font-normal">상태</th>
-                  <th className="pb-2 pr-2 text-right font-normal">체력</th>
+                  <th className="pb-2 pr-2 text-right font-normal">에너지</th>
                   <th className="pb-2 pr-2 text-right font-normal">코인</th>
                   <th className="pb-2 pr-2 text-right font-normal">횟수</th>
                   <th className="pb-2 font-normal">소지품</th>
@@ -1562,8 +1562,8 @@ export default function AdminPanel({ username }: { username: string }) {
           </div>
 
           <p className="mono-13 text-fg-low">
-            이름을 누르면 상세를 볼 수 있다. 코드는 되돌릴 수 없는 해시로
-            저장되므로 확인용으로 따로 보관한 값이며, 이 표는 관리자에게만 보인다.
+            아이디를 누르면 상세를 볼 수 있습니다. 비밀번호는 되돌릴 수 없는 해시로
+            저장되므로 확인용으로 따로 보관한 값이며, 이 표는 관리자에게만 보입니다.
           </p>
         </Panel>
 
@@ -1604,13 +1604,13 @@ export default function AdminPanel({ username }: { username: string }) {
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Stat label="코인" value={detail.coins} brass />
-              <Stat label="체력" value={`${detail.hp} / ${detail.hp_max}`} />
+              <Stat label="에너지" value={`${detail.hp} / ${detail.hp_max}`} />
               <Stat
                 label="남은 게임"
                 value={`${detail.plays_left} (보너스 ${detail.bonus_plays})`}
               />
               <Stat
-                label="병동"
+                label="휴식"
                 value={
                   detail.in_ward
                     ? formatDuration(detail.ward_left) + " 남음"
@@ -1836,7 +1836,7 @@ export default function AdminPanel({ username }: { username: string }) {
                   {e.maybe_reverted && !e.trade && !e.confiscated && (
                     <p className="mono-13 border-loss/40 border bg-bg-0 px-3 py-2 text-loss">
                       이 기록 뒤에 같은 상대와의 &quot;거래 취소 — 회수&quot;
-                      기록이 있다. 이미 처리된 거래일 수 있으니 확인하고 진행하라.
+                      기록이 있다. 이미 처리된 거래일 수 있으니 확인하고 진행하세요.
                     </p>
                   )}
 
@@ -2053,7 +2053,7 @@ export default function AdminPanel({ username }: { username: string }) {
               </div>
               <div className="flex flex-col gap-2 p-4">
                 <p className="body-15 text-fg">
-                  {detail.username} 의 정지를 지금 해제한다. 정말 해제하겠나?
+                  {detail.username} 의 정지를 지금 해제한다. 정말 해제할까요?
                 </p>
                 {error && <p className="mono-13 text-loss">{error}</p>}
                 <div className="flex gap-2">
@@ -2081,19 +2081,19 @@ export default function AdminPanel({ username }: { username: string }) {
         <Panel className="flex flex-col gap-2">
           <SectionHead
             title="플레이어 삭제"
-            desc="이름과 코드가 모두 맞아야 지운다. 지우면 기록도 함께 사라진다."
+            desc="아이디와 초기 비밀번호가 모두 맞아야 지웁니다. 지우면 기록도 함께 사라집니다."
           />
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
               value={delName}
               onChange={(e) => setDelName(e.target.value)}
-              placeholder="이름"
+              placeholder="아이디"
               className={FIELD}
             />
             <input
               value={delCode}
               onChange={(e) => setDelCode(e.target.value)}
-              placeholder="코드 (0000-XXXXXX)"
+              placeholder="초기 비밀번호"
               className={FIELD}
             />
             <button
@@ -2122,7 +2122,7 @@ export default function AdminPanel({ username }: { username: string }) {
               <div className="flex flex-col gap-2 p-4">
                 <p className="body-15 text-fg">
                   {delName} 을(를) 삭제한다. 코인·소지품·관계·기록이 전부
-                  사라지고 되돌릴 수 없다. 정말 삭제하겠나?
+                  사라지고 되돌릴 수 없다. 정말 삭제할까요?
                 </p>
                 {error && <p className="mono-13 text-loss">{error}</p>}
                 <div className="flex gap-2">
@@ -2150,7 +2150,7 @@ export default function AdminPanel({ username }: { username: string }) {
         <Panel className="flex flex-col gap-2">
           <SectionHead
             title="코인 지급"
-            desc="음수를 넣으면 회수된다. 잔액은 0 밑으로 내려가지 않는다. 고른 사유는 받은 사람의 수감기록에 그대로 남는다."
+            desc="음수를 넣으면 회수된다. 잔액은 0 밑으로 내려가지 않는다. 고른 사유는 받은 사람의 프로필 기록에 그대로 남는다."
           />
           <div className="flex flex-col gap-2 sm:flex-row">
             <select
@@ -2208,7 +2208,7 @@ export default function AdminPanel({ username }: { username: string }) {
         <Panel className="flex flex-col gap-2">
           <SectionHead
             title="아이템 지급"
-            desc="배급소 순환과 무관하게 모든 아이템을 줄 수 있다. 음수를 넣으면 회수된다. 고른 사유는 받은 사람의 수감기록에 그대로 남는다."
+            desc="상점 진열과 무관하게 모든 아이템을 줄 수 있다. 음수를 넣으면 회수된다. 고른 사유는 받은 사람의 프로필 기록에 그대로 남는다."
           />
           <div className="grid gap-2 sm:grid-cols-2">
             <select

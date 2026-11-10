@@ -20,7 +20,7 @@ import {
 } from "./ui/PhotoAttach";
 
 /**
- * 진정함 — 안내문(GuidePopup)과 같은 오버레이 뼈대를 쓰는 팝업.
+ * 피드백 — 안내(GuidePopup)와 같은 오버레이 뼈대를 쓰는 팝업.
  * 목록은 본인 것만 보인다. 상세의 답변자 표기는 서버가 이미 정리해서
  * 주므로("관리자" 또는 본인 이름), 여기서는 그대로 찍기만 한다.
  */
@@ -53,7 +53,7 @@ export default function PetitionBox({
 }: {
   onClose: () => void;
   /**
-   * 관리자 답변이 달린 진정이 있는지 헤더에 알린다. 헤더도 따로 60초마다
+   * 관리자 답변이 달린 피드백이 있는지 헤더에 알린다. 헤더도 따로 60초마다
    * 보지만, 여기서 답변을 달면 상태가 바로 뒤집히므로 즉시 올려 준다.
    */
   onAnswered?: (has: boolean) => void;
@@ -210,9 +210,9 @@ export default function PetitionBox({
           </p>
         )}
 
-        {/* ── 새 진정 ── */}
+        {/* ── 새 피드백 ── */}
         <Panel className="flex flex-col gap-2">
-          <h2 className="title-19 text-fg-hi">진정 접수</h2>
+          <h2 className="title-19 text-fg-hi">피드백 보내기</h2>
           <input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -225,7 +225,7 @@ export default function PetitionBox({
             onChange={(e) => setBody(e.target.value)}
             maxLength={500}
             rows={4}
-            placeholder="내용을 적어라. 본인과 관리자만 볼 수 있다."
+            placeholder="내용을 적어 주세요. 본인과 관리자만 볼 수 있습니다."
             className={`${FIELD} min-h-24 resize-none`}
           />
           <div className="flex items-end justify-end gap-2">
@@ -240,11 +240,11 @@ export default function PetitionBox({
           </div>
         </Panel>
 
-        {/* ── 내 진정 목록 ── */}
+        {/* ── 내 피드백 목록 ── */}
         <Panel className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <h2 className="title-19 text-fg-hi">
-              접수한 진정 {petitions.length}건
+              보낸 피드백 {petitions.length}건
             </h2>
             <button onClick={load} className={`${SMALL} ml-auto`}>
               새로고침
@@ -253,7 +253,7 @@ export default function PetitionBox({
 
           {petitions.length === 0 ? (
             <p className="scanline-faint mono-13 text-fg-low border-line border border-dashed px-3 py-6 text-center">
-              접수한 진정이 없다.
+              보낸 피드백이 없습니다.
             </p>
           ) : (
             <ul className="flex flex-col gap-1.5">
@@ -353,7 +353,7 @@ export default function PetitionBox({
 
             {thread.status === "closed" ? (
               <p className="mono-13 text-fg-low border-line border border-dashed px-3 py-3 text-center">
-                종결된 진정이라 답변을 더 달 수 없다.
+                종료된 피드백이라 답변을 더 달 수 없습니다.
               </p>
             ) : (
               <div className="flex flex-col gap-2">
@@ -362,7 +362,7 @@ export default function PetitionBox({
                   onChange={(e) => setReplyBody(e.target.value)}
                   maxLength={500}
                   rows={3}
-                  placeholder="답변을 적어라."
+                  placeholder="답변을 적어 주세요."
                   className={`${FIELD} min-h-20 resize-none`}
                 />
                 <div className="flex items-end justify-end gap-2">

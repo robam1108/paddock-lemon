@@ -26,7 +26,7 @@ function screenIsActive() {
  * 로비 접속자 목록. "로그인해 둔 사람"이 아니라
  * "지금 화면을 보고 있는 사람"만 담긴다.
  *
- * 채널은 마운트당 딱 한 번만 만든다. 예전에는 status(체력 등급)가 deps 에
+ * 채널은 마운트당 딱 한 번만 만든다. 예전에는 status(에너지 등급)가 deps 에
  * 들어 있어서 게임 한 판·아이템 하나·PvP 폴링마다 removeChannel -> channel
  * 을 다시 탔고, removeChannel 을 await 하지 않아 옛 채널의 phx_leave 가 새
  * 채널의 join 뒤에 처리되면 서버가 presence key 를 지워 버렸다. 그게 "서로
@@ -136,7 +136,7 @@ export function usePresence(
     };
   }, [supabase, userId]);
 
-  // 화면을 보기 시작하면 등록, 벗어나면 즉시 목록에서 내린다. 체력 등급이
+  // 화면을 보기 시작하면 등록, 벗어나면 즉시 목록에서 내린다. 에너지 등급이
   // 바뀔 때도 여기로 들어와 track 만 다시 민다(채널은 그대로 둔다).
   // (숨김 계정은 애초에 등록하지 않는다 — 본인은 계속 목록을 볼 수 있다)
   useEffect(() => {

@@ -4,7 +4,7 @@ import type { ItemGrade } from "@/lib/game";
  * 품목 표시.
  *
  * DB 에 저장된 이모지를 그대로 띄운다. 등급은 색이 아니라 면의 밝기와 테두리
- * 한 단으로 읽힌다. 수감기록 구역에서는 놋쇠 토큰이 무채색으로 덮이므로 이
+ * 한 단으로 읽힌다. 프로필 구역에서는 놋쇠 토큰이 무채색으로 덮이므로 이
  * 컴포넌트의 테두리·면도 자동으로 색을 잃는다.
  *
  * emoji 가 없으면 분류 한 글자로 대체한다.
@@ -12,17 +12,13 @@ import type { ItemGrade } from "@/lib/game";
 
 const KIND_MARK: Record<string, string> = {
   food: "식",
-  tobacco: "담",
-  liquor: "주",
-  medicine: "의",
-  drug: "약",
-  luxury: "사",
+  liquor: "음",
+  medicine: "회",
+  luxury: "꾸",
   permit: "증",
-  treat: "기",
-  tool: "연",
-  adult: "성",
-  trick: "비",
-  gift: "은",
+  treat: "간",
+  tool: "도",
+  gift: "선",
 };
 
 const GRADE_TONE: Record<ItemGrade, string> = {

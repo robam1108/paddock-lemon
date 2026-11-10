@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * 진정함 첨부 사진. avatars 와 달리 petitions 버킷은 비공개라
+ * 피드백 첨부 사진. avatars 와 달리 petitions 버킷은 비공개라
  * getPublicUrl 을 못 쓰고 매번 서명 URL을 받아야 한다.
  * 원본이 크지 않으므로(압축 후 수백 KB) 링크는 그때그때 새로 받는다.
  */

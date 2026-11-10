@@ -5,7 +5,7 @@ import ItemMark from "./ui/ItemMark";
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * 게임 횟수 회복분이 하루 상한에 걸려 버려지거나, 체력이 이미 가득 차
+ * 게임 횟수 회복분이 하루 상한에 걸려 버려지거나, 에너지가 이미 가득 차
  * 회복량이 넘칠 때 뜨는 확인 창. 모르고 써서 날리는 일이 없도록 미리
  * 알려주고, 그냥 닫을 수 있게 한다.
  */
@@ -22,10 +22,8 @@ export default function UseWarning({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  // 약물은 bonus_plays 가 아니라 별개 하위 상한(drug_plays)을 쓰지만, 서버가
-  // 이미 총량(extra_max) 기준으로 drug_left/bonus_left 를 깎아 내려주므로
-  // gain/wasted 계산은 그대로 맞는다.
-  const playsLeft = item.kind === "drug" ? state.drug_left : state.bonus_left;
+  // 서버가 총량(extra_max) 기준으로 bonus_left 를 깎아 내려주므로 gain/wasted 계산은 그대로 맞는다.
+  const playsLeft = state.bonus_left;
   const gain = Math.min(item.plays, playsLeft);
   const wasted = item.plays - gain;
 
@@ -74,18 +72,18 @@ export default function UseWarning({
             <>
               <p className="body-15 text-fg mt-2">
                 {gain === 0
-                  ? "이걸 써도 배정 횟수는 늘지 않는다."
-                  : "배정 횟수는 일부만 들어간다."}
+                  ? "지금 쓰면 게임 횟수가 늘지 않습니다."
+                  : "게임 횟수는 일부만 늘어납니다."}
               </p>
               <p className="body-15 text-fg-mid">
-                아이템에 의한 게임 횟수 회복은 식량·의약품·약물을 합쳐 1일{" "}
-                {state.extra_max}회까지다. 오늘 이미 {state.extra_plays}회를 썼다.
+                아이템으로 되살리는 게임 횟수는 하루{" "}
+                {state.extra_max}회까지입니다. 오늘 이미 {state.extra_plays}회를 썼습니다.
               </p>
             </>
           )}
           {hpWasted > 0 && (
             <p className="body-15 text-fg mt-2">
-              체력이 이미 {state.hp_max - hpRoom}이라, 회복량 일부가 넘친다.
+              에너지가 이미 {state.hp_max - hpRoom}이라 회복량 일부가 넘칩니다.
             </p>
           )}
 
@@ -94,18 +92,18 @@ export default function UseWarning({
               label="실제 적용"
               value={
                 <>
-                  {hpGain > 0 && `체력 +${hpGain}`}
+                  {hpGain > 0 && `에너지 +${hpGain}`}
                   {hpGain > 0 && gain > 0 && " · "}
-                  {gain > 0 && `배정 +${gain}`}
+                  {gain > 0 && `게임 횟수 +${gain}`}
                   {hpGain === 0 && gain === 0 && "없음"}
                 </>
               }
             />
             {wasted > 0 && (
-              <Row label="버려짐 (배정)" value={`${wasted}회`} tone="loss" />
+              <Row label="버려짐 (게임 횟수)" value={`${wasted}회`} tone="loss" />
             )}
             {hpWasted > 0 && (
-              <Row label="버려짐 (체력)" value={`${hpWasted}`} tone="loss" />
+              <Row label="버려짐 (에너지)" value={`${hpWasted}`} tone="loss" />
             )}
           </div>
 
