@@ -318,3 +318,55 @@ P0의 체크리스트를 하나씩 처리하고, 완료 기준을 확인한 뒤 
 ```
 
 단계마다 새 세션에서 "PLAN.md의 P\<n>을 진행해줘"로 시작해도 된다. 진행 상황은 8절 체크리스트를 직접 체크해 두면 다음 세션이 이어받기 쉽다.
+
+## 10. 다음 세션 인계
+
+### 현재 상태 (2026-11-10)
+- 저장소 `C:\Users\BR\paddock`, 브랜치 `main`, 원격 없음. 원본 `../mini-casino`는 읽기 전용.
+- 로컬 DB: Docker Desktop + `npm run db:start` / `npm run db:reset`. 데모 `demo01~03 / paddock-demo`, 관리자 `admin / paddock-admin`(seed.sql, 로컬 전용).
+- `.env.local`은 로컬 URL·publishable key(로컬 고정값)로 채워져 있다.
+- Supabase CLI가 사용자 로그인으로 원격 프로젝트 `casino`(운영 원본)를 인식한다 → **`--remote`, `db push`, `link`를 절대 쓰지 않는다.**
+- 앱 미리보기 버튼이 원본 mini-casino 서버를 띄우는 문제가 있었다. 화면 확인은 `npx next dev -p 3005`로 띄우고 브라우저 패널에서 `http://localhost:3005`.
+- 한도 절약: Record·AdminPanel 같은 큰 파일은 통째로 읽지 말고 `grep -n`으로 위치를 찾은 뒤 필요한 범위만 읽는다.
+
+### P3. 대형 파일 분할 (동작 변경 없음)
+현재 크기: `AdminPanel.tsx` 2574, `Record.tsx` 2019, `game.ts` 1211, `Casino.tsx` 935, `Exchange.tsx` 843, `copy.ts` 712. 목표 파일당 600줄 이하.
+- `Record.tsx` → `src/components/profile/`: `ProfileCard`, 내 정보 탭, 소지품 탭, 친구 탭(친구 피드·플레이어 목록), 기록 탭, 팝업들(프로필 수정·친구 등록·되묻기·사진). 공통 상태는 상위 `Record`에 두고 props로 내린다.
+- `AdminPanel.tsx` → `src/components/admin/` 섹션별(플레이어 추가·삭제, 피드백, 친구 신청, 플레이어 목록/상세, 지급·회수, 거래). 공통 버튼 클래스(`PRIMARY`, `SMALL`, `FIELD`, `DANGER`)는 한 파일로.
+- `Casino.tsx` → 셸(헤더·섹션 탭), 아이템 사용 훅(`useItemActions`: runWithPopup·applyItem 등), Casual 탭 본문.
+- `game.ts` → `lib/types.ts`(서버 응답 타입), `lib/items.ts`(아이템 표시), `lib/errors.ts`(ERROR_MESSAGES), 게임 도우미는 `lib/game.ts`에 남김. `Exchange.tsx`·`copy.ts`도 600줄 넘으면 나눈다.
+- 완료 기준: 600줄 넘는 파일 없음, `npx tsc --noEmit`·`npm run build` 통과, 브라우저에서 각 탭이 전과 같이 뜸. 커밋 `P3: 대형 파일 분할`.
+- 주의: `next lint`는 설정이 없어 대화형 프롬프트가 뜬다. P4에서 ESLint CLI(flat config)로 옮긴 뒤 lint를 쓴다.
+
+### P4. 테스트와 CI
+- Vitest 추가(`npm test`). 클라이언트 순수 함수: `hlMult`·`hlNextPot`(서버 반올림과 일치), `eulReul` 등 조사 도우미.
+- 확률 검증은 **서버 규칙 값 기준**으로: 룰렛 색·숫자 하우스 엣지 2.00%, 슬롯(풀 21칸 + 배당표) 1.91%, 키노 RTP ≈ 0.98(재추첨 `app.keno_*_keep` 포함). 값은 `get_rules()` 결과(또는 `supabase/migrations/*_rules.sql`)를 픽스처로 쓴다.
+- 경마 기대값 ≈ `1 − race_take(0.20)` 시뮬레이션(SQL 또는 Vitest).
+- pgTAP(`supabase/tests/*.sql`, `supabase test db`): anon/authenticated가 `profiles.coins` 직접 수정 불가, 마감 전 경주 결과 비노출, `app.race_settle` 두 번 호출해도 지급 한 번(P2에서 수동 확인함), `highlow_continue(null)` → `INVALID_CHOICE`, 거래 이중 지출 불가(`04_trade` 원본에서 행 잠금 확인 필요), `panel_*`가 비관리자에게 `NOT_ADMIN`.
+- Playwright E2E 1개: 로그인(demo01) → 경마 베팅 → 결과 확인(테스트 경주는 `race_admin_test`가 운영자 계정 전용이라, 시드 경주의 `post_at`을 앞당기는 SQL 헬퍼를 테스트 준비 단계에서 쓴다).
+- GitHub Actions: lint, typecheck, build, check-theme, vitest, `supabase start` + `supabase test db`.
+- 완료 기준: 로컬에서 위 전부 통과(원격 저장소가 아직 없으면 CI는 워크플로 파일 작성까지). 커밋 `P4: 테스트와 CI`.
+
+### P5. 데모와 시연 자료
+- `guest_login` 게스트 체험 RPC(임시 계정 발급, cron으로 코인 주기 초기화) — 새 마이그레이션 파일로.
+- 데모용 **새** Supabase 프로젝트 + Vercel 배포는 사용자 결정·로그인이 필요하다(계정 생성·키 입력은 사용자가 직접). `casino` 프로젝트는 쓰지 않는다.
+- 경주 중계 GIF·스크린샷, `public/guide/*.svg` placeholder를 실제 안내도로 교체할지 결정.
+- 커밋 `P5: 데모와 시연 자료`.
+
+### P6. 문서화와 공개
+- README(아키텍처 mermaid, 로컬 실행), `docs/ops-log.md`(`_private/repair`에서 콘셉트 무관 10~15건), `docs/case-studies/` 4~6편(6절 후보), 용어표(DB 식별자 `hp`=에너지, `ward`=휴식, `cell`=룸, `petition`=피드백, 장소·미션 코드).
+- 공개 전 점검: gitleaks, check-theme, 이미지 출처, 고지 문구, `docs/PLAN.md`의 `윤태강` 등 원본 예시 문구 정리.
+- GitHub 비공개 저장소 생성·푸시는 사용자 확인 후, 공개 전환은 마지막에.
+
+### P2에서 넘어온 미해결 항목 (해당 단계에서 처리)
+- 플레이어 번호 `#0001`이 아직 아이디 해시(`src/lib/identity.ts`) — DB 발급 순번 컬럼(새 마이그레이션) + `state_json`·`player_roster`에 노출 (P3 또는 P5).
+- `relations.kind`(이제 'user'만)·`expires_at` 컬럼 정리 (새 마이그레이션).
+- 키노·룰렛 입력 검증 정규식에 숫자 하드코딩(`play_game`) — `app.keno_range()` 등으로 (새 마이그레이션).
+- 관리자 화면은 브라우저로 아직 열어 보지 않았다(발급 → 초기 비밀번호 1회 표시, 아이디 재입력 삭제).
+- 마이그레이션 변경 규칙: 이제부터는 기존 `2026111100*.sql`을 고치지 말고 새 파일을 추가한다(CLAUDE.md). 단 아직 어디에도 배포 전이라, 대규모 정리가 필요하면 사용자에게 먼저 물어 기존 파일 수정 허용 여부를 정한다.
+
+### 새 세션 첫 프롬프트 예시
+```
+CLAUDE.md와 docs/PLAN.md(8~10절)를 읽고 P3를 진행해줘. 큰 파일은 grep으로 위치를 찾고 필요한 부분만 읽어.
+```
+
