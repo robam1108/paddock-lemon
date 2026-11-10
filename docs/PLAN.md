@@ -279,7 +279,7 @@ git grep -nE '병동|가축|배급소|밀거래|수감|죄수|교정|무간|흑�
 > - Vitest 136건(`npm test`): 하이로우 배율 117칸이 서버와 같음 · 적립금 `hlNextPot` 판돈 1~300 전수 일치 · 단계별 기대값, 룰렛 2.00% · 슬롯 1.91%(21³ 전수), 조사 · 시간 표기, 오류 문구.
 > - pgTAP 31건(`npx supabase test db`, `supabase/tests/`): 키노 RTP 0.98 · 3개 적중 1/28.5 · 5개 1/9,261, 경마 단승 · 연승 · 복승 기대값 ≈ 0.80(4,000경주 시뮬레이션, 시드 고정), 마감 전 `result` · 컨디션 비노출, races · race_days 직접 조회 0행, 정산 세 번 호출에 지급 · 기록 한 번, profiles · ledger 직접 수정 차단(authenticated · anon), `highlow_continue(null)` 회귀, `panel_*` NOT_ADMIN / AUTH_REQUIRED, 선물 이중 지출(TRADE_CLOSED · PARTNER_SHORT_COINS, 잔액 음수 없음).
 > - Playwright 1건(`npm run test:e2e`): 준비 단계에서 SQL 로 몇 분 뒤 발주하는 경주를 편성 → demo01 로그인 → Arena · 경마장 → 단승 구매 → 발주 시각을 당기면 화면의 `race_card` 호출이 정산(lazy) → 실황 뒤 성적표 · 내 마권(적중/낙첨). 로컬은 설치된 Chrome(`PW_CHANNEL=chrome`), CI 는 Chromium.
-> - CI(`.github/workflows/ci.yml`): `checks`(lint · typecheck · check-theme · vitest · build) + `db`(supabase start → test db → 픽스처 확인 → build → E2E). 원격 저장소가 아직 없어 **GitHub 에서는 한 번도 돌지 않았다**(로컬에서 각 단계를 같은 명령으로 확인).
+> - CI(`.github/workflows/ci.yml`): `checks`(lint · typecheck · check-theme · vitest · build) + `db`(supabase start → test db → 픽스처 확인 → build → E2E). 2026-11-10 GitHub 비공개 저장소에 올린 첫 실행에서 두 작업 모두 통과(checks 1분 45초, db 4분 20초). 이어서 Node 20 지원 종료 경고에 맞춰 actions 를 v7(node24)로 올렸다.
 >
 > **테스트가 찾은 결함(수정함)**
 > - `toKoreanError` 가 부분 문자열로 찾아서 `OPPONENT_IN_WARD` · `NOT_IN_WARD` 가 앞에 적힌 `IN_WARD` 문구("휴식 중에는 할 수 없습니다")로 잘못 나갔다 → 메시지 속 코드를 낱말 단위로 찾는다.
@@ -351,7 +351,8 @@ P0의 체크리스트를 하나씩 처리하고, 완료 기준을 확인한 뒤 
 ## 10. 다음 세션 인계
 
 ### 현재 상태 (2026-11-10)
-- 저장소 `C:\Users\BR\paddock`, 브랜치 `main`, 원격 없음. 원본 `../mini-casino`는 읽기 전용.
+- 저장소 `C:\Users\BR\paddock`, 브랜치 `main`, 원격 `origin` = GitHub `robam1108/paddock`(**비공개**, P6 직전에 공개 전환). push 하면 CI 가 돈다. 원본 `../mini-casino`는 읽기 전용.
+- 저장소를 만들기 전 `gitleaks git .` 0건, 운영 원본 프로젝트 식별자 · `.env` 미추적, 커밋 작성자가 GitHub noreply 주소임을 확인했다.
 - 로컬 DB: Docker Desktop + `npm run db:start` / `npm run db:reset`. 데모 `demo01~03 / paddock-demo`, 관리자 `admin / paddock-admin`(seed.sql, 로컬 전용).
 - `.env.local`은 로컬 URL·publishable key(로컬 고정값)로 채워져 있다.
 - Supabase CLI가 사용자 로그인으로 원격 프로젝트 `casino`(운영 원본)를 인식한다 → **`--remote`, `db push`, `link`를 절대 쓰지 않는다.**
@@ -365,7 +366,7 @@ P0의 체크리스트를 하나씩 처리하고, 완료 기준을 확인한 뒤 
 - 명령: `npm run lint` · `npm run typecheck` · `npm test`(Vitest) · `npx supabase test db`(pgTAP) · `npm run test:e2e`(Playwright, 로컬은 `PW_CHANNEL=chrome` 을 붙이면 브라우저를 따로 받지 않는다) · `npm run fixtures`(서버 규칙 값이 바뀌면 픽스처 다시 뽑기).
 - pgTAP 도우미 `tests.login(이름)` · `tests.as_anon()` · `tests.logout()` 은 `supabase/tests/00_helpers.sql` 에만 있고, 로컬 DB 의 `tests` 스키마에 남는다(`db reset` 하면 다음 `test db` 때 다시 만든다).
 - E2E 는 로컬 DB 를 실제로 바꾼다(demo01 코인 · 에너지 보정, 경주 no=90 편성 후 삭제, 마권 · 기록 1건).
-- 남은 것: CI 는 GitHub 저장소를 만든 뒤 첫 실행에서 확인해야 한다(로컬 Windows 와 달리 runner 의 psql 로 붙는다).
+- CI 는 GitHub 에서 통과 확인(runner 는 psql 로, 로컬 Windows 는 DB 컨테이너 안의 psql 로 붙는다).
 
 ### P5. 데모와 시연 자료
 - `guest_login` 게스트 체험 RPC(임시 계정 발급, cron으로 코인 주기 초기화) — 새 마이그레이션 파일로.
