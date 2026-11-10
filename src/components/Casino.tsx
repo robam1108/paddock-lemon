@@ -5,35 +5,23 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { setRules, type Rules } from "@/lib/server-rules";
 import {
-  gameList,
   SECTIONS,
-  itemAction,
-  MILK,
   toKoreanError,
-  toPlayerState,
   type GameId,
-  type InventoryItem,
   type PlayResult,
   type PlayerState,
   type Section,
 } from "@/lib/game";
-import {
-  blockedState,
-  bonusTail,
-  clockText,
-  settleLine,
-  usedItemLines,
-  type UsedVia,
-} from "@/lib/copy";
+import { blockedState } from "@/lib/copy";
+import { useItemActions } from "@/hooks/useItemActions";
+import { usePlayActions } from "@/hooks/usePlayActions";
 import { usePresence } from "@/hooks/usePresence";
 import { useRooms } from "@/hooks/useRooms";
 import { usePvp } from "@/hooks/usePvp";
 import CollapsePopup from "./CollapsePopup";
 import SuspendPopup from "./SuspendPopup";
 import InvitePopup from "./InvitePopup";
-
 import RadioPopup from "./RadioPopup";
-import { GEAR } from "@/lib/gear";
 import ItemUsedPopup from "./ItemUsedPopup";
 import UseWarning from "./UseWarning";
 import SharePopup from "./SharePopup";
@@ -42,16 +30,13 @@ import Leaderboard from "./Leaderboard";
 import RulesPanel from "./RulesPanel";
 import TerminalHeader from "./TerminalHeader";
 import BetControl from "./BetControl";
-import Roulette from "./Roulette";
-import Slots from "./Slots";
-import HighLow from "./HighLow";
-import Keno from "./Keno";
 import BlackRoom from "./BlackRoom";
 import RaceHall from "./race/RaceHall";
 import Record from "./Record";
 import Labor from "./Labor";
 import Search from "./Search";
 import Exchange from "./Exchange";
+import CasualTab from "./casino/CasualTab";
 import TabRail from "./ui/TabRail";
 import BlockedRow from "./ui/BlockedRow";
 import Texture from "./ui/Texture";
@@ -126,16 +111,6 @@ export default function Casino({
   const [last, setLast] = useState<PlayResult | null>(null);
   // 값이 바뀔 때마다 순위표를 즉시 다시 읽는다.
   const [rankKey, setRankKey] = useState(0);
-  // 사용 시 효과가 버려지는 아이템을 쓰기 전 확인
-  const [pendingUse, setPendingUse] = useState<InventoryItem | null>(null);
-  // 함께 쓸 수 있는 음료·간식 — 혼자/함께를 고르는 창이 떠 있는 동안의 대상.
-  const [pendingShare, setPendingShare] = useState<InventoryItem | null>(null);
-  // 라디오를 켜면 뜨는 팝업. 닫으면 곡도 같이 꺼진다.
-  const [radioOpen, setRadioOpen] = useState(false);
-  // 소지품에서 쓰거나 착용한 직후 결과 팝업(copy.ts 의 usedItemLines).
-  const [usedPopup, setUsedPopup] = useState<{ lines: string[]; notes: string[] } | null>(
-    null,
-  );
   // 사용 직전 상태 — 팝업의 "이전 → 이후" 를 그릴 때 콜백 안에서 읽는다.
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -182,112 +157,19 @@ export default function Casino({
     ? null
     : blockedState(state, outOfPlays && section !== "BLACK", brokeToday);
 
-  /**
-   * 판을 여는 RPC 공통 처리.
-   *
-   * 성공하면 busy 를 켠 채로 결과를 돌려준다 — 애니메이션이 끝나고 onSettle 이
-   * 불릴 때까지 화면은 잠겨 있어야 하기 때문이다. 실패하면 그 자리에서 busy 를
-   * 풀고 서버 상태를 다시 읽는다.
-   *
-   * await 가 { error } 대신 throw 하는 경우(네트워크 끊김·토큰 갱신 실패)까지
-   * 여기서 받아야 한다. 놓치면 busy 가 true 로 남아 구역 탭까지 전부 잠긴 채
-   * 새로고침 말고는 빠져나갈 길이 없다.
-   */
-  const runPlayRpc = useCallback(
-    async (
-      fn: string,
-      args?: Record<string, unknown>,
-    ): Promise<PlayResult | null> => {
-      setError(null);
-      setLast(null);
-      setBusy(true);
 
-      const fail = async (message: string | undefined) => {
-        setError(toKoreanError(message));
-        setBusy(false);
-        try {
-          const { data: fresh } = await supabase.rpc("get_my_state");
-          if (fresh) setState(fresh as PlayerState);
-        } catch {
-          // 재조회까지 실패하면 화면에 있는 값을 그대로 둔다. 판은 풀렸다.
-        }
-      };
-
-      try {
-        const { data, error: rpcError } = await supabase.rpc(fn, args ?? {});
-        if (!rpcError && data) return data as PlayResult;
-        await fail(rpcError?.message);
-        return null;
-      } catch (e) {
-        await fail(e instanceof Error ? e.message : undefined);
-        return null;
-      }
-    },
-    [supabase],
-  );
-
-  /**
-   * 서버에 판정을 요청한다. 성공하면 결과를, 실패하면 null 을 돌려준다.
-   *
-   * 코인은 여기서 건드리지 않는다 — 판돈을 미리 빼 놓으면 원판이 도는 4초
-   * 동안 상단 숫자가 이미 줄어 있어서, 판이 끝났을 때 딴 건지 잃은 건지
-   * 읽기가 어렵다. 코인은 onSettle 한 곳에서만 움직인다. 플레이 횟수는 승패와
-   * 무관하게 늘 -1 이라 헷갈릴 일이 없으므로 바로 반영한다.
-   */
-  const onPlay = useCallback(
-    async (g: GameId, choice: string | null): Promise<PlayResult | null> => {
-      if (!canPlay) return null;
-
-      const result = await runPlayRpc("play_game", {
-        p_game: g,
-        p_bet: effectiveBet,
-        p_choice: choice,
-      });
-      if (!result) return null;
-
-      setState((prev) => ({
-        ...prev,
-        plays_used: result.plays_used,
-        plays_left: result.plays_left,
-      }));
-      return result;
-    },
-    [canPlay, effectiveBet, runPlayRpc],
-  );
-
-  /** 하이로우: 판돈을 걸고 판을 연다. 패가 뽑히면 바로 보여준다. */
-  const onStartHighLow = useCallback(async (): Promise<PlayResult | null> => {
-    if (!canPlay) return null;
-    return runPlayRpc("highlow_begin", { p_bet: effectiveBet });
-  }, [canPlay, effectiveBet, runPlayRpc]);
-
-  /** 하이로우 사다리: 다음 단계로 계속하기(0단계 첫 판정 포함). 코인도 횟수도 추가로 쓰지 않는다. */
-  const onContinue = useCallback(
-    async (choice: string): Promise<PlayResult | null> => {
-      if (busyRef.current) return null;
-      return runPlayRpc("highlow_continue", { p_choice: choice });
-    },
-    [runPlayRpc],
-  );
-
-  /** 하이로우 사다리: 적립금 받고 끝내기 */
-  const onCashout = useCallback(async (): Promise<PlayResult | null> => {
-    if (busyRef.current) return null;
-    return runPlayRpc("highlow_cashout");
-  }, [runPlayRpc]);
-
-  /** 애니메이션이 끝난 뒤 서버가 알려준 최종 상태를 반영한다. */
-  const onSettle = useCallback((result: PlayResult) => {
-    setState(toPlayerState(result));
-    setBusy(false);
-    setBet((b) => Math.max(1, Math.min(b, result.coins)));
-    setRankKey((k) => k + 1);
-
-    // 하이로우 판이 아직 열려 있으면(0단계 포함) 상단 배너는 띄우지 않는다.
-    // (적중/적립금 안내는 하이로우 화면이 직접 보여준다)
-    const midLadder = result.game === "highlow" && result.hl_bet > 0;
-    setLast(midLadder ? null : result);
-  }, []);
+  const { onPlay, onStartHighLow, onContinue, onCashout, onSettle } = usePlayActions({
+    supabase,
+    canPlay,
+    effectiveBet,
+    busyRef,
+    setState,
+    setBusy,
+    setBet,
+    setError,
+    setLast,
+    setRankKey,
+  });
 
   /** 상점 RPC 공통 처리. 성공하면 상태를 갱신하고 true 를 돌려준다.
    *  onError 를 주면 실패 문구를 상단 배너 대신 그쪽으로 넘긴다(소지품 팝업). */
@@ -354,157 +236,27 @@ export default function Casino({
     return () => window.clearTimeout(t);
   }, [busy, refreshState]);
 
-  /** 쓰기·착용·해제 RPC 를 부르고, 무엇이 바뀌었는지 팝업으로 보여준다.
-   *  착용 상한(FLEX_LIMIT) 같은 실패도 같은 팝업에 문구 한 줄로 띄운다. */
-  const runWithPopup = useCallback(
-    async (fn: string, via: UsedVia, code: string, extra?: Record<string, unknown>) => {
-      const before = stateRef.current;
-      const item = before.items.find((i) => i.code === code);
-      const after = await callStoreRpc(fn, { p_code: code, ...extra }, (message) =>
-        setUsedPopup({ lines: [message], notes: [] }),
-      );
-      if (after && item) setUsedPopup(usedItemLines(item, via, before, after));
-    },
-    [callStoreRpc],
-  );
+  const {
+    pendingUse,
+    setPendingUse,
+    pendingShare,
+    setPendingShare,
+    radioOpen,
+    setRadioOpen,
+    usedPopup,
+    setUsedPopup,
+    doUseItem,
+    doUseTogether,
+    doUnequip,
+    doRoast,
+    doMix,
+    applyItem,
+    onUseItem,
+    onSellItem,
+    onBuyItem,
+    onAvatarChange,
+  } = useItemActions({ state, stateRef, callStoreRpc, reloadRoster, setNotice });
 
-  const doUseItem = useCallback(
-    (code: string) => runWithPopup("use_item", "use", code),
-    [runWithPopup],
-  );
-
-  /** 순수 꾸미기 소모품(음료·향수) — 게임 효과가 없어 확인 팝업 없이 바로 쓴다. */
-  const doFlexUse = useCallback(
-    (code: string) => runWithPopup("flex_use", "flex_use", code),
-    [runWithPopup],
-  );
-
-  /** 누군가와 함께 — 내 것 하나를 쓰고, 고른 사람에게도 특이사항이 붙는다. */
-  const doUseTogether = useCallback(
-    (code: string, mate: string) =>
-      runWithPopup("use_together", "together", code, { p_with: mate }),
-    [runWithPopup],
-  );
-
-  /** 라디오 — 사라지지 않고, 켤 때마다 프로필 표시가 1시간 붙는다. */
-  const doRadioOn = useCallback(
-    async (code: string) => {
-      const ok = await callStoreRpc("radio_on", { p_code: code });
-      if (ok) setRadioOpen(true);
-    },
-    [callStoreRpc],
-  );
-
-  /** 운동기구 — 사라지지 않고, 착용하면 프로필 표시가 1시간 붙는다. */
-  const doGearOn = useCallback(
-    (code: string) => runWithPopup("gear_on", "gear_on", code),
-    [runWithPopup],
-  );
-
-  const doFlexEquip = useCallback(
-    (code: string) => runWithPopup("flex_equip", "flex_equip", code),
-    [runWithPopup],
-  );
-
-
-  /** 라이터로 생고구마를 굽는다. 라이터는 닳지 않는다. */
-  const doRoast = useCallback(
-    (code: string) => runWithPopup("roast_item", "roast", code),
-    [runWithPopup],
-  );
-
-  /** 우유에 커피·아이스 커피·루이보스티를 섞는다. 팝업은 섞은 음료(drink) 쪽 이름으로 쓴다. */
-  const doMix = useCallback(
-    async (drink: string) => {
-      const before = stateRef.current;
-      const item = before.items.find((i) => i.code === drink);
-      const after = await callStoreRpc("mix_item", { p_code: MILK, p_with: drink }, (message) =>
-        setUsedPopup({ lines: [message], notes: [] }),
-      );
-      if (after && item) setUsedPopup(usedItemLines(item, "mix", before, after));
-    },
-    [callStoreRpc],
-  );
-
-  const doFlexUnequip = useCallback(
-    (code: string) => runWithPopup("flex_unequip", "flex_unequip", code),
-    [runWithPopup],
-  );
-
-  /** 해제 — 운동기구는 gear_off 로 1시간 상태를 바로 끝낸다(특이사항도 사라진다). */
-  const doUnequip = useCallback(
-    (code: string) =>
-      GEAR.has(code) ? runWithPopup("gear_off", "gear_off", code) : doFlexUnequip(code),
-    [runWithPopup, doFlexUnequip],
-  );
-
-  /**
-   * 게임 횟수 회복분이 하루 상한(bonus_left — 서버가 이미 총량(extra_max) 기준으로
-   * 깎아 내려준다)에 걸려 버려지거나 에너지가 이미 가득 차 회복량이 넘칠
-   * 상황이면 먼저 확인을 받는다. 그런 게 아니면 바로 쓴다. 순수 꾸미기는
-   * 확인 없이 곧장 처리한다.
-   */
-  const applyItem = useCallback(
-    (code: string) => {
-      const item = state.items.find((i) => i.code === code);
-      if (!item) return;
-
-      const action = itemAction(item);
-      if (action === "flex_use") {
-        doFlexUse(code);
-        return;
-      }
-      if (action === "flex_equip") {
-        doFlexEquip(code);
-        return;
-      }
-      if (action === "radio") {
-        doRadioOn(code);
-        return;
-      }
-      if (action === "gear") {
-        doGearOn(code);
-        return;
-      }
-      if (action !== "use") return;
-
-      const playsLeft = state.bonus_left;
-      const hpRoom = Math.max(0, state.hp_max - state.hp);
-      const playsWasted = item.plays > 0 && playsLeft < item.plays;
-      const hpWasted = item.heal > 0 && item.heal > hpRoom;
-      if (playsWasted || hpWasted) {
-        setPendingUse(item);
-        return;
-      }
-      doUseItem(code);
-    },
-    [
-      state.items,
-      state.bonus_left,
-      state.hp,
-      state.hp_max,
-      doUseItem,
-      doFlexUse,
-      doFlexEquip,
-      doRadioOn,
-      doGearOn,
-    ],
-  );
-
-  /** 함께 쓸 수 있는 음료·간식이면 먼저 혼자/함께를 묻는다. 명단을 다시 읽어
-   *  그 사이 휴식에 들어간 사람을 목록에서 뺀다. */
-  const onUseItem = useCallback(
-    (code: string) => {
-      const item = state.items.find((i) => i.code === code);
-      if (item?.shareable) {
-        setPendingShare(item);
-        reloadRoster();
-        return;
-      }
-      applyItem(code);
-    },
-    [state.items, applyItem, reloadRoster],
-  );
 
   // 휴식 중이어도 휴식을 줄이는 아이템이 있으면 스스로 풀 수 있다. 가진 것만, 있는
   // 만큼만 안내 줄에 버튼으로 떠서 그 자리에서 바로 쓴다.
@@ -518,33 +270,6 @@ export default function Casino({
     <BlockedRow blocked={blocked} actions={wardActions} disabled={busy} />
   ) : null;
 
-  const onSellItem = useCallback(
-    async (code: string, qty: number) => {
-      const ok = await callStoreRpc("sell_item", { p_code: code, p_qty: qty });
-      if (ok) setNotice(`${qty}개를 판매했습니다.`);
-    },
-    [callStoreRpc],
-  );
-
-  // 성공 여부를 돌려준다 — 상점이 그걸 보고 "오늘 n/3개" 를 바로 올린다.
-  const onBuyItem = useCallback(
-    async (code: string, qty: number): Promise<boolean> => {
-      const ok = await callStoreRpc("buy_item", { p_code: code, p_qty: qty });
-      if (ok) setNotice(`${qty}개를 구매했습니다.`);
-      return ok !== null;
-    },
-    [callStoreRpc],
-  );
-
-  /** 프로필 사진을 Storage에 올린 뒤, 경로만 프로필에 반영한다. */
-  const onAvatarChange = useCallback(
-    async (path: string | null): Promise<boolean> => {
-      const ok = await callStoreRpc("set_avatar_path", { p_path: path });
-      if (ok) setNotice(path ? "사진을 등록했습니다." : "사진을 지웠습니다.");
-      return ok !== null;
-    },
-    [callStoreRpc],
-  );
 
   /**
    * 상태 메시지·나이·키/체중·소개를 프로필에 반영한다.
@@ -828,93 +553,26 @@ export default function Casino({
             )}
 
             {section === "WHITE" && (
-              <>
-                <TabRail
-                  items={gameList().map((g) => ({ id: g.id, label: g.name }))}
-                  value={game}
-                  onChange={(id) => {
-                    setGame(id);
-                    setLast(null);
-                    setError(null);
-                  }}
-                  disabled={busy}
-                  marker="left"
-                  columns="grid-cols-2 tab:grid-cols-4"
-                  height="h-10"
-                />
-
-                {/* 판이 끝나면 로그에 한 줄 붙는 정도로만 남긴다.
-                    자리를 늘 비워 둬서 결과가 떠도 아래 판이 밀리지 않는다.
-                    결과가 없을 때는 그 자리에 참가 보상 안내를 대신 띄운다. */}
-                <div className="min-h-9">
-                  {last ? (
-                    <p
-                      className={`mono-13 bg-bg-1 flex min-h-9 items-center px-3 ${
-                        last.net < 0 ? "text-loss" : "text-fg"
-                      }`}
-                    >
-                      {settleLine(last.net, last.payout)}
-                      {bonusTail(last.outcome.bonus_stake, state.luck?.ends_at)}
-                    </p>
-                  ) : state.luck ? (
-                    <p className="mono-13 bg-bg-1 text-brass flex min-h-9 items-center px-3">
-                      클로버 판돈 +{state.luck.stake} · {clockText(state.luck.ends_at)}까지
-                      (판돈에 얹혀 지급되고, 코인은 판돈만 빠집니다)
-                    </p>
-                  ) : state.play_wage > 0 ? (
-                    <p className="mono-13 bg-bg-1 text-fg-low flex min-h-9 items-center px-3">
-                      판돈의 절반만큼, 최대 {state.play_wage}코인까지 참가 보상을 지급합니다.
-                    </p>
-                  ) : (
-                    <p className="bg-bg-1 min-h-9" />
-                  )}
-                </div>
-
-                {game === "roulette" && (
-                  <Roulette
-                    bet={effectiveBet}
-                    disabled={!canPlay}
-                    blockedRow={blockedRow}
-                    betSlot={betSlot}
-                    onPlay={onPlay}
-                    onSettle={onSettle}
-                  />
-                )}
-                {game === "slots" && (
-                  <Slots
-                    bet={effectiveBet}
-                    disabled={!canPlay}
-                    blockedRow={blockedRow}
-                    betSlot={betSlot}
-                    onPlay={onPlay}
-                    onSettle={onSettle}
-                  />
-                )}
-                {game === "keno" && (
-                  <Keno
-                    bet={effectiveBet}
-                    disabled={!canPlay}
-                    blockedRow={blockedRow}
-                    betSlot={betSlot}
-                    onPlay={onPlay}
-                    onSettle={onSettle}
-                  />
-                )}
-                {game === "highlow" && (
-                  <HighLow
-                    state={state}
-                    bet={effectiveBet}
-                    // 판이 열려 있으면(0단계 포함) 코인·횟수를 쓰지 않으므로 잔액이 0이어도 계속할 수 있다
-                    disabled={busy || (state.hl_bet === 0 && !canPlay)}
-                    blockedRow={blockedRow}
-                    betSlot={betSlot}
-                    onStart={onStartHighLow}
-                    onContinue={onContinue}
-                    onCashout={onCashout}
-                    onSettle={onSettle}
-                  />
-                )}
-              </>
+              <CasualTab
+                state={state}
+                game={game}
+                onGameChange={(id) => {
+                  setGame(id);
+                  setLast(null);
+                  setError(null);
+                }}
+                last={last}
+                busy={busy}
+                canPlay={canPlay}
+                effectiveBet={effectiveBet}
+                blockedRow={blockedRow}
+                betSlot={betSlot}
+                onPlay={onPlay}
+                onStartHighLow={onStartHighLow}
+                onContinue={onContinue}
+                onCashout={onCashout}
+                onSettle={onSettle}
+              />
             )}
           </main>
 

@@ -242,10 +242,24 @@ git grep -nE '병동|가축|배급소|밀거래|수감|죄수|교정|무간|흑�
 
 ### P3. 대형 파일 분할과 규칙 일원화 (2\~3일)
 
-- [ ] `Record.tsx`(2435줄)는 `profile/` 하위로, `AdminPanel.tsx`(2583줄)는 탭별로, `Casino.tsx`(979줄)는 셸·탭·베팅으로 분할한다. 목표는 파일당 600줄 이하.
-- [ ] 동작은 바꾸지 않는다. 분할 전후로 화면이 같은지 확인한다.
+- [x] `Record.tsx`(2435줄)는 `profile/` 하위로, `AdminPanel.tsx`(2583줄)는 탭별로, `Casino.tsx`(979줄)는 셸·탭·베팅으로 분할한다. 목표는 파일당 600줄 이하.
+- [x] 동작은 바꾸지 않는다. 분할 전후로 화면이 같은지 확인한다.
 
 완료 기준: 600줄을 넘는 파일 없음, build·lint 통과.
+> P3 결과(2026-11-10)
+>
+> **방법.** 줄 범위를 그대로 옮기는 기계적 분할만 했다(로직 · 문구 · 클래스 변경 없음). 상태가 얽힌 두 화면(프로필 · 관리자)은 "상태 훅 + 표현 컴포넌트" 구조로 나눴다: 기능별 훅을 모델 훅 하나가 조립하고(`useRecordModel` · `useAdminModel`), 탭 · 섹션 · 팝업 컴포넌트는 모델 `m` 에서 필요한 값만 구조 분해해 쓴다. 기존 `import ... from "@/lib/game"` 경로는 `game.ts` 가 새 모듈을 다시 내보내므로 그대로 동작한다.
+>
+> **결과** (src 최대 파일 `Casino.tsx` 593줄)
+> - `Record.tsx` 2019 → 79: `profile/` — 훅 `useRecordModel` · `useAvatar` · `useDetails` · `useRelations` · `useCatGifts`, 탭 `ProfileTab` · `ItemsTab` · `RosterTab` · `HistoryTab`, 팝업 `RelationPopups` · `ConfirmPopup` · `AvatarPopups` · `DetailsPopup`, `ProfileCard`, `shared.ts`(타입 · 탭 목록 · 버튼 클래스 · 기록 줄 도우미).
+> - `AdminPanel.tsx` 2574 → 45: `admin/` — 훅 `useAdminModel` · `useAdminCore`(목록 · 상세 · 발급/삭제 · 지급/회수 · 정지, 공용 busy/error/notice) · `usePetitionAdmin` · `useRelationAdmin` · `useTradeAdmin`, 섹션 10개(화면 순서 그대로), `ui.tsx`(FIELD · PRIMARY · PLAIN · SMALL · DANGER, ReasonPicker · Stat · Offer 등).
+> - `Casino.tsx` 935 → 593: `hooks/usePlayActions`(판 열기 · 하이로우 · 정산 반영), `hooks/useItemActions`(쓰기 · 착용 · 굽기 · 섞기 · 사고팔기 · 사진, 확인/결과 팝업 상태), `casino/CasualTab`.
+> - `Exchange.tsx` 843 → 447: `exchange/parts`(Picker · Stepper · OfferLine · HandLabel · 버튼 클래스 · toPayload), `exchange/TradeCard`(거래 기록 한 건). 되보내기 작성 상태는 상위에 남겨 한 번에 한 건만 열리는 동작을 유지했다.
+> - `game.ts` 1211 → 472: `items.ts` · `types.ts` · `errors.ts`. `copy.ts` 712 → 461: `copy-cat.ts`(고양이 문구) · `josa.ts`(조사 도우미).
+>
+> **확인한 것.** `npx tsc --noEmit`(추가로 `--noUnusedLocals` 도 0건), `npm run build`, `check-theme` 0건. 브라우저(로컬 스택, demo01 · admin): 프로필 4탭 · 프로필 수정 · 친구 등록 팝업 · 플레이어 목록, Casual 룰렛 1판(코인 114 → 113, 결과 줄), 상점 구매 확인 → 구매, 개인 거래 걸기 → 물리기(TradeCard), 소지품 판매 되묻기 · 사용 결과 팝업, 일일 미션 · 탐험 · Arena, 관리자 전 섹션 · 플레이어 상세 · 정지 팝업. 콘솔 · 서버 오류 0건.
+>
+> **lint.** `next lint` 는 설정이 없어 대화형으로 멈추므로 P4에서 ESLint flat config 를 들일 때 함께 통과시킨다.
 
 ### P4. 테스트와 CI (3일)
 
@@ -326,17 +340,13 @@ P0의 체크리스트를 하나씩 처리하고, 완료 기준을 확인한 뒤 
 - 로컬 DB: Docker Desktop + `npm run db:start` / `npm run db:reset`. 데모 `demo01~03 / paddock-demo`, 관리자 `admin / paddock-admin`(seed.sql, 로컬 전용).
 - `.env.local`은 로컬 URL·publishable key(로컬 고정값)로 채워져 있다.
 - Supabase CLI가 사용자 로그인으로 원격 프로젝트 `casino`(운영 원본)를 인식한다 → **`--remote`, `db push`, `link`를 절대 쓰지 않는다.**
-- 앱 미리보기 버튼이 원본 mini-casino 서버를 띄우는 문제가 있었다. 화면 확인은 `npx next dev -p 3005`로 띄우고 브라우저 패널에서 `http://localhost:3005`.
-- 한도 절약: Record·AdminPanel 같은 큰 파일은 통째로 읽지 말고 `grep -n`으로 위치를 찾은 뒤 필요한 범위만 읽는다.
+- 화면 확인: 앱 미리보기(`.claude/launch.json` 의 `paddock`, `npm run dev -- -p 3005`)를 쓴다. 3005가 차 있으면 다음 빈 포트(예: 3006)로 뜬다. 원본 mini-casino 서버가 떠 있으면 포트를 확인한다.
+- 한도 절약: 큰 파일은 통째로 읽지 말고 `grep -n`으로 위치를 찾은 뒤 필요한 범위만 읽는다.
 
-### P3. 대형 파일 분할 (동작 변경 없음)
-현재 크기: `AdminPanel.tsx` 2574, `Record.tsx` 2019, `game.ts` 1211, `Casino.tsx` 935, `Exchange.tsx` 843, `copy.ts` 712. 목표 파일당 600줄 이하.
-- `Record.tsx` → `src/components/profile/`: `ProfileCard`, 내 정보 탭, 소지품 탭, 친구 탭(친구 피드·플레이어 목록), 기록 탭, 팝업들(프로필 수정·친구 등록·되묻기·사진). 공통 상태는 상위 `Record`에 두고 props로 내린다.
-- `AdminPanel.tsx` → `src/components/admin/` 섹션별(플레이어 추가·삭제, 피드백, 친구 신청, 플레이어 목록/상세, 지급·회수, 거래). 공통 버튼 클래스(`PRIMARY`, `SMALL`, `FIELD`, `DANGER`)는 한 파일로.
-- `Casino.tsx` → 셸(헤더·섹션 탭), 아이템 사용 훅(`useItemActions`: runWithPopup·applyItem 등), Casual 탭 본문.
-- `game.ts` → `lib/types.ts`(서버 응답 타입), `lib/items.ts`(아이템 표시), `lib/errors.ts`(ERROR_MESSAGES), 게임 도우미는 `lib/game.ts`에 남김. `Exchange.tsx`·`copy.ts`도 600줄 넘으면 나눈다.
-- 완료 기준: 600줄 넘는 파일 없음, `npx tsc --noEmit`·`npm run build` 통과, 브라우저에서 각 탭이 전과 같이 뜸. 커밋 `P3: 대형 파일 분할`.
+### P3. 대형 파일 분할 — 완료 (8절 P3 결과 참고)
+- 프로필 · 관리자 화면은 모델 훅(`useRecordModel` · `useAdminModel`)이 상태를 들고, 탭 · 섹션 컴포넌트가 `m` 에서 꺼내 쓴다. 새 상태는 해당 기능 훅에 넣고 모델이 펼쳐 내보낸다.
 - 주의: `next lint`는 설정이 없어 대화형 프롬프트가 뜬다. P4에서 ESLint CLI(flat config)로 옮긴 뒤 lint를 쓴다.
+- 발견(미수정, 문구): 관리자 플레이어 목록 아래 안내에 "비밀번호는 … 확인용으로 따로 보관한 값" 이라는 문장이 남아 있다. P2부터 평문을 보관하지 않으므로 P4/P6 문구 정리 때 고친다.
 
 ### P4. 테스트와 CI
 - Vitest 추가(`npm test`). 클라이언트 순수 함수: `hlMult`·`hlNextPot`(서버 반올림과 일치), `eulReul` 등 조사 도우미.

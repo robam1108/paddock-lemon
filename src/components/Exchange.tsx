@@ -5,19 +5,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   ITEM_GRADE_LABEL,
   ITEM_KIND_LABEL,
-  TRADE_STATUS_LABEL,
-  formatDuration,
   itemEffect,
   toKoreanError,
   type ItemDef,
   type PlayerState,
   type Trade,
-  type TradeItem,
 } from "@/lib/game";
 import TabRail from "./ui/TabRail";
 import ItemMark from "./ui/ItemMark";
 import MonoLabel from "./ui/MonoLabel";
 import BuyConfirm from "./ui/BuyConfirm";
+import { HandLabel, Picker, PLAIN, PRIMARY, toPayload } from "./exchange/parts";
+import TradeCard from "./exchange/TradeCard";
 
 import { usePageVisible } from "@/hooks/usePageVisible";
 
@@ -34,42 +33,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "depot", label: "상점" },
   { id: "trade", label: "개인 거래" },
 ];
-
-/** 명조로 찍은 섹션 제목. 이 구역에서만 쓴다. */
-function HandLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="font-hand text-brass text-[24px] leading-[1.15] font-semibold">
-      {children}
-    </span>
-  );
-}
-
-/** 코인 + 아이템 묶음을 한 줄로 */
-function OfferLine({
-  coins,
-  items,
-  empty = "없음",
-}: {
-  coins: number;
-  items: TradeItem[];
-  empty?: string;
-}) {
-  if (coins === 0 && items.length === 0) {
-    return <span className="text-fg-low">{empty}</span>;
-  }
-  return (
-    <span className="text-fg">
-      {coins > 0 && <span className="text-brass">{coins} 코인</span>}
-      {coins > 0 && items.length > 0 && <span className="text-fg-low"> + </span>}
-      {items.map((i, n) => (
-        <span key={i.code}>
-          {n > 0 && <span className="text-fg-low">, </span>}
-          {i.name} ×{i.qty}
-        </span>
-      ))}
-    </span>
-  );
-}
 
 export default function Exchange({
   supabase,
@@ -194,12 +157,6 @@ export default function Exchange({
     [onBuyItem, loadCatalog],
   );
 
-
-  const toPayload = (picks: Record<string, number>) =>
-    Object.entries(picks)
-      .filter(([, q]) => q > 0)
-      .map(([code, qty]) => ({ code, qty }));
-
   const confirmItem = confirmCode
     ? (catalog.find((i) => i.code === confirmCode) ?? null)
     : null;
@@ -234,11 +191,6 @@ export default function Exchange({
   const hiddenTradeCount = sortedTrades.length - shownTrades.length;
 
   const busyAll = busy || working;
-
-  const primary =
-    "state-fade label-11 border-brass-line border bg-brass-fill px-4 py-3 text-fg-hi disabled:border-line-soft disabled:bg-surface disabled:text-fg-low";
-  const plain =
-    "state-fade label-11 border-line border bg-surface px-4 py-3 text-fg-mid enabled:hover:text-fg-hi disabled:text-fg-low";
 
   return (
     <div className="flex flex-col gap-2">
@@ -312,7 +264,7 @@ export default function Exchange({
                           state.coins < (it.buy_price ?? 0)
                         }
                         onClick={() => setConfirmCode(it.code)}
-                        className={`${primary} ml-auto flex w-24 shrink-0 flex-col items-center justify-center gap-0.5 text-center`}
+                        className={`${PRIMARY} ml-auto flex w-24 shrink-0 flex-col items-center justify-center gap-0.5 text-center`}
                       >
                         {capped ? (
                           "품절"
@@ -410,7 +362,7 @@ export default function Exchange({
                   setGift(false);
                 }
               }}
-              className={`${primary} title-19 min-h-12`}
+              className={`${PRIMARY} title-19 min-h-12`}
             >
               {partner
                 ? gift
@@ -431,224 +383,39 @@ export default function Exchange({
             <section className="bg-bg-1 flex flex-col gap-2 p-4">
               <HandLabel>거래 기록</HandLabel>
               <ul className="flex flex-col gap-1.5">
-                {shownTrades.map((t) => {
-                  const open =
-                    t.status === "offered" || t.status === "countered";
-                  // 끝난 건은 끝난 종이다. 바닥보다 더 어두운 면으로 내려
-                  // 앉히고 글자도 한 단 죽여서, 아직 굴러가는 건과 갈라 놓는다.
-                  const done = t.status === "done";
-                  const closed = done || t.status === "cancelled";
-                  return (
-                    <li
-                      key={t.id}
-                      className={`flex flex-col gap-1.5 border p-3 ${
-                        closed
-                          ? "border-line-soft/50 bg-bg-0 text-fg-mid"
-                          : "border-line-soft bg-surface"
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-baseline gap-2">
-                        <span
-                          className={`body-15 ${closed ? "text-fg-mid" : "text-fg-hi"}`}
-                        >
-                          {t.partner}
-                        </span>
-                        {t.is_gift && <MonoLabel>선물</MonoLabel>}
-                        <span
-                          className={`label-11 ml-auto ${
-                            t.my_turn ? "text-brass" : "text-fg-low"
-                          }`}
-                        >
-                          {t.my_turn
-                            ? "내 차례"
-                            : done
-                              ? `✓ ${TRADE_STATUS_LABEL[t.status]}`
-                              : TRADE_STATUS_LABEL[t.status]}
-                        </span>
-                      </div>
-
-                      <div
-                        className={`mono-13 flex flex-col gap-0.5 ${
-                          closed ? "opacity-65" : ""
-                        }`}
-                      >
-                        <p>
-                          <span className="text-fg-low">줄 것 </span>
-                          <OfferLine coins={t.my_coins} items={t.my_items} />
-                        </p>
-                        <p>
-                          <span className="text-fg-low">받을 것 </span>
-                          <OfferLine
-                            coins={t.their_coins}
-                            items={t.their_items}
-                            empty={t.is_gift ? "선물" : "아직 미정"}
-                          />
-                        </p>
-                      </div>
-
-                      {open && (
-                        <MonoLabel tone="low">
-                          {formatDuration(t.expires_in)} 후 만료
-                        </MonoLabel>
-                      )}
-
-                      {/* 받은 쪽: 수락(선물) / 되보내기 / 거절 */}
-                      {t.my_turn && t.status === "offered" && (
-                        <div className="flex flex-col gap-1.5">
-                          {t.is_gift ? (
-                            <div className="grid grid-cols-2 gap-1.5">
-                              <button
-                                type="button"
-                                disabled={busyAll}
-                                onClick={() =>
-                                  call("trade_respond", {
-                                    p_id: t.id,
-                                    p_action: "accept",
-                                  })
-                                }
-                                className={primary}
-                              >
-                                받기
-                              </button>
-                              <button
-                                type="button"
-                                disabled={busyAll}
-                                onClick={() =>
-                                  call("trade_respond", {
-                                    p_id: t.id,
-                                    p_action: "decline",
-                                  })
-                                }
-                                className={plain}
-                              >
-                                거절
-                              </button>
-                            </div>
-                          ) : counterFor === t.id ? (
-                            <div className="bg-bg-2 flex flex-col gap-2 p-2.5">
-                              <MonoLabel>내가 내놓을 것</MonoLabel>
-                              <Picker
-                                items={myItems}
-                                coins={cCoins}
-                                maxCoins={state.coins}
-                                picked={cPicked}
-                                onCoins={setCCoins}
-                                onPick={setCPicked}
-                              />
-                              <div className="flex gap-1.5">
-                                <button
-                                  type="button"
-                                  disabled={busyAll}
-                                  onClick={async () => {
-                                    const ok = await call("trade_respond", {
-                                      p_id: t.id,
-                                      p_action: "counter",
-                                      p_coins: cCoins,
-                                      p_items: toPayload(cPicked),
-                                    });
-                                    if (ok) {
-                                      setCounterFor(null);
-                                      setCCoins(0);
-                                      setCPicked({});
-                                    }
-                                  }}
-                                  className={`${primary} flex-1`}
-                                >
-                                  보내기
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setCounterFor(null)}
-                                  className={plain}
-                                >
-                                  취소
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-2 gap-1.5">
-                              <button
-                                type="button"
-                                disabled={busyAll}
-                                onClick={() => {
-                                  setCounterFor(t.id);
-                                  setCCoins(0);
-                                  setCPicked({});
-                                }}
-                                className={primary}
-                              >
-                                조건 붙여 되보내기
-                              </button>
-                              <button
-                                type="button"
-                                disabled={busyAll}
-                                onClick={() =>
-                                  call("trade_respond", {
-                                    p_id: t.id,
-                                    p_action: "decline",
-                                  })
-                                }
-                                className={plain}
-                              >
-                                거절
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* 제안자: 최종 수락 / 거절 */}
-                      {t.my_turn && t.status === "countered" && (
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <button
-                            type="button"
-                            disabled={busyAll}
-                            onClick={() =>
-                              call("trade_finalize", {
-                                p_id: t.id,
-                                p_accept: true,
-                              })
-                            }
-                            className={primary}
-                          >
-                            성사
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busyAll}
-                            onClick={() =>
-                              call("trade_finalize", {
-                                p_id: t.id,
-                                p_accept: false,
-                              })
-                            }
-                            className={plain}
-                          >
-                            거절
-                          </button>
-                        </div>
-                      )}
-
-                      {open && !t.my_turn && (
-                        <button
-                          type="button"
-                          disabled={busyAll}
-                          onClick={() => call("trade_cancel", { p_id: t.id })}
-                          className={plain}
-                        >
-                          거래 물리기
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
+                {shownTrades.map((t) => (
+                  <TradeCard
+                    key={t.id}
+                    t={t}
+                    myItems={myItems}
+                    maxCoins={state.coins}
+                    busy={busyAll}
+                    call={call}
+                    countering={counterFor === t.id}
+                    cCoins={cCoins}
+                    cPicked={cPicked}
+                    onCCoins={setCCoins}
+                    onCPicked={setCPicked}
+                    onCounterOpen={() => {
+                      setCounterFor(t.id);
+                      setCCoins(0);
+                      setCPicked({});
+                    }}
+                    onCounterSent={() => {
+                      setCounterFor(null);
+                      setCCoins(0);
+                      setCPicked({});
+                    }}
+                    onCounterCancel={() => setCounterFor(null)}
+                  />
+                ))}
               </ul>
 
               {(showAllTrades || hiddenTradeCount > 0) && (
                 <button
                   type="button"
                   onClick={() => setShowAllTrades((v) => !v)}
-                  className={plain}
+                  className={PLAIN}
                 >
                   {showAllTrades
                     ? "접기"
@@ -674,169 +441,6 @@ export default function Exchange({
           }}
           onCancel={() => setConfirmCode(null)}
         />
-      )}
-    </div>
-  );
-}
-
-/** 코인/아이템 고르기 */
-function Picker({
-  items,
-  coins,
-  maxCoins,
-  picked,
-  onCoins,
-  onPick,
-}: {
-  items: PlayerState["items"];
-  coins: number;
-  maxCoins: number;
-  picked: Record<string, number>;
-  onCoins: (n: number) => void;
-  onPick: (p: Record<string, number>) => void;
-}) {
-  // qty=0 인 항목은 봉인된 갑이 없다는 뜻이다 — 개봉한 갑의 남은 개비(open_left)
-  // 만 있는 상태라 넘길 수 없으므로 목록에서도 뺀다.
-  const tradable = items.filter((i) => i.tradable && i.qty > 0);
-
-  return (
-    <div className="flex flex-col gap-1">
-      {/* 빠른 버튼 때문에 좁은 화면에선 한 줄에 안 들어간다 — 줄을 바꿔 증감기를 아래로 내린다. */}
-      <div className="bg-surface flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2">
-        <span className="body-15 text-fg min-w-12 flex-1 truncate">코인</span>
-        <div className="ml-auto max-w-full">
-          <Stepper value={coins} max={maxCoins} accent quick onChange={onCoins} />
-        </div>
-      </div>
-
-      {tradable.length === 0 ? (
-        <p className="mono-13 text-fg-low px-3 py-1">내놓을 물건이 없습니다.</p>
-      ) : (
-        tradable.map((it) => {
-          const n = picked[it.code] ?? 0;
-          return (
-            <div
-              key={it.code}
-              className="bg-surface flex items-center gap-2 px-3 py-2"
-            >
-              <ItemMark kind={it.kind} grade={it.grade} emoji={it.emoji} size="sm" />
-              <span className="body-15 text-fg min-w-0 flex-1 truncate">
-                {it.name}
-                <span className="text-fg-low"> 보유 {it.qty}</span>
-              </span>
-              <Stepper
-                value={n}
-                max={it.qty}
-                onChange={(v) => onPick({ ...picked, [it.code]: v })}
-              />
-            </div>
-          );
-        })
-      )}
-    </div>
-  );
-}
-
-/**
- * 코인과 아이템이 같은 간격으로 보이도록 폭을 고정한 증감기.
- * quick을 켜면 ±10, ±100 버튼이 양옆에 붙어 그만큼만 폭이 넓어진다.
- */
-function Stepper({
-  value,
-  max,
-  accent,
-  quick,
-  onChange,
-}: {
-  value: number;
-  max: number;
-  accent?: boolean;
-  /** ±10, ±100 버튼을 양옆에 붙인다. 코인처럼 자릿수가 큰 값에만 쓴다. */
-  quick?: boolean;
-  onChange: (n: number) => void;
-}) {
-  // 0과 보유량 사이로 자르는 건 여기 한 곳에서만 한다.
-  const set = (delta: number) =>
-    onChange(Math.max(0, Math.min(max, value + delta)));
-
-  const btn =
-    "border-line state-fade h-9 w-9 shrink-0 border bg-surface-hi text-fg disabled:text-fg-low";
-  const quickCls =
-    "label-11 state-fade border-line h-9 min-w-0 overflow-hidden border bg-surface-hi px-1.5 text-fg-mid enabled:hover:text-fg-hi disabled:text-fg-low";
-
-  // 빠른 버튼이 있으면 좁은 화면에서 버튼만 줄어들어 부모 폭 안에 머문다.
-  return (
-    <div
-      className={`flex items-center gap-1 ${quick ? "min-w-0 max-w-full" : "shrink-0"}`}
-    >
-      {quick && (
-        <>
-          <button
-            type="button"
-            onClick={() => set(-100)}
-            disabled={value === 0}
-            aria-label="100 줄이기"
-            className={quickCls}
-          >
-            -100
-          </button>
-          <button
-            type="button"
-            onClick={() => set(-10)}
-            disabled={value === 0}
-            aria-label="10 줄이기"
-            className={quickCls}
-          >
-            -10
-          </button>
-        </>
-      )}
-      <button
-        type="button"
-        onClick={() => set(-1)}
-        disabled={value === 0}
-        aria-label="줄이기"
-        className={btn}
-      >
-        ＜
-      </button>
-      <span
-        className={`mono-13 w-10 shrink-0 text-center tabular-nums ${
-          accent ? "text-brass" : "text-fg-hi"
-        }`}
-      >
-        {value}
-      </span>
-      <button
-        type="button"
-        onClick={() => set(1)}
-        disabled={value >= max}
-        aria-label="늘리기"
-        className={btn}
-      >
-        ＞
-      </button>
-      {quick && (
-        <>
-          <button
-            type="button"
-            onClick={() => set(10)}
-            disabled={value >= max}
-            aria-label="10 늘리기"
-            className={quickCls}
-          >
-            +10
-          </button>
-          <button
-            type="button"
-            onClick={() => set(100)}
-            disabled={value >= max}
-            aria-label="100 늘리기"
-            className={quickCls}
-          >
-            +100
-          </button>
-        </>
       )}
     </div>
   );
