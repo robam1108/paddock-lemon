@@ -172,10 +172,10 @@ export default function Slots({
           </div>
           <div className="bg-surface col-span-2 hidden flex-1 flex-col justify-end gap-1.5 p-3 desk:flex">
             <span className="body-15 text-fg-mid">
-              세 칸이 같으면 표의 배당, 두 칸만 같으면 ×{getRules().slots.pair_mult}다.
+              세 칸이 같으면 표의 배당, 두 칸만 같으면 ×{getRules().slots.pair_mult}입니다.
             </span>
             <span className="body-15 text-fg">
-              레버는 없다. 눌러도 결과는 이미 정해져 있다.
+              결과는 서버가 정하고, 화면은 그 결과를 보여 줄 뿐입니다.
             </span>
           </div>
         </div>

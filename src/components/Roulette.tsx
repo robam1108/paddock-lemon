@@ -184,10 +184,10 @@ export default function Roulette({
           </div>
           <div className="bg-surface col-span-2 hidden flex-1 flex-col justify-end gap-1.5 p-3 desk:flex">
             <span className="body-15 text-fg-mid">
-              지금 건 것은 {rouletteChoiceLabel(choice)}다.
+              지금 고른 것: {rouletteChoiceLabel(choice)}.
             </span>
             <span className="body-15 text-fg">
-              한 번 돌아가면 되돌릴 수 없다.
+              한 번 돌리면 되돌릴 수 없습니다.
             </span>
           </div>
         </div>

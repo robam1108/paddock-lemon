@@ -38,7 +38,7 @@ function Card({
         <div
           className={`${CARD_BOX} card-hatch border-line flex items-center justify-center rounded-[2px] border bg-surface`}
         >
-          <span className="label-11 text-fg-low tracking-[0.2em]">K-77</span>
+          <span className="label-11 text-fg-low tracking-[0.2em]">PADDOCK</span>
         </div>
       ) : (
         <div
@@ -493,7 +493,7 @@ export default function MatchView({
       {match.my_turn ? (
         <>
           <p className="mono-13 text-fg-mid">
-            네 차례다. {left}초 안에 골라라.
+            내 차례입니다. {left}초 안에 골라 주세요.
           </p>
           <div className="grid grid-cols-2 gap-1.5">
             <button

@@ -26,7 +26,7 @@ import { LABOR_JOBS, SEARCH_FINDS, searchTier } from "./labor";
 /* ── 공통 라벨 ─────────────────────────────────────────────── */
 
 export const LABEL = {
-  no: "플레이어 번호",
+  no: "번호",
   health: "에너지",
   coins: "보유 코인",
   ration: "오늘 남은 판",

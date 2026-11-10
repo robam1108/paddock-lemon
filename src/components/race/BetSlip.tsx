@@ -70,7 +70,7 @@ export default function BetSlip({
       />
       <div className="bg-bg-1 flex flex-col gap-1 px-3 py-2">
         <p className="mono-13 text-fg-mid">
-          {KIND_NAME[kind]} — {KIND_DESC[kind]}. 출전표에서 {need === 2 ? "두 마리" : "한 마리"}를 고른다.
+          {KIND_NAME[kind]} — {KIND_DESC[kind]}. 출전표에서 {need === 2 ? "두 마리" : "한 마리"}를 고르세요.
         </p>
         <p className="mono-13 flex min-h-6 flex-wrap items-center gap-1.5 text-fg-hi">
           {picks.length === 0 ? (

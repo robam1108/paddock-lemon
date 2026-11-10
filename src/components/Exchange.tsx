@@ -421,8 +421,8 @@ export default function Exchange({
 
             <p className="body-15 text-fg-low">
               그냥 주는 게 아니면 상대가 조건을 붙여 되보내고, 내가 마지막에
-              받아야 성사된다. 물건은 미리 묶이지 않고, 성사되는 순간 양쪽을
-              다시 확인한다.
+              받아야 성사됩니다. 물건은 미리 묶이지 않고, 성사되는 순간 양쪽을
+              다시 확인합니다.
             </p>
           </section>
 

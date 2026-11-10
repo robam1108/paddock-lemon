@@ -138,13 +138,13 @@ export default function TerminalHeader({
       <div className="flex flex-col items-stretch gap-y-3 px-3.5 py-3 desk:min-h-21 desk:flex-row desk:flex-nowrap desk:gap-x-0 desk:py-0">
         {/* 플레이어 */}
         <div className="flex items-center gap-3 desk:pr-5">
-          <div className="border-line flex w-[74px] shrink-0 flex-col items-center justify-center gap-1 border bg-surface py-2">
+          <div className="border-line flex w-[88px] shrink-0 flex-col items-center justify-center gap-1 border bg-surface py-2">
             <MonoLabel tone="low">{LABEL.no}</MonoLabel>
             <span className="num-md text-fg-hi tabular-nums">{me.no}</span>
           </div>
           <div className="min-w-0">
             <MonoLabel tone="low">
-              {me.no} · 룸 {state.cell ?? "-"}
+              룸 {state.cell ?? "-"}
             </MonoLabel>
             {/* 상태 메시지는 프로필 카드에만 적는다.
                 헤더는 숫자만 둔다. */}

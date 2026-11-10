@@ -77,7 +77,7 @@ const FlipCard = forwardRef<
     <div ref={ref} className={`${CARD_BOX} flip-stage ${className ?? ""}`}>
       <div className="flip-card" data-flipped={flipped}>
         <div className="flip-face card-hatch border-line flex items-center justify-center border bg-surface">
-          <span className="label-11 text-fg-low tracking-[0.2em]">K-77</span>
+          <span className="label-11 text-fg-low tracking-[0.2em]">PADDOCK</span>
         </div>
         <div className="flip-face flip-face-back border-card-edge flex flex-col items-center justify-center gap-0.5 border bg-card-face shadow-[inset_0_0_0_5px_var(--color-card-inset)]">
           <span className={`${CARD_NUM} text-card-ink`}>
@@ -368,8 +368,8 @@ export default function HighLow({
                   <br className="tab:hidden" />
                   <span className="text-fg-low">
                     <span className="hidden tab:inline"> </span>
-                    {state.hl_bet} 코인을 걸었다.
-                    {(state.hl_bonus ?? 0) > 0 && ` 보너스 ${state.hl_bonus} 코인이 얹혔습니다.`}
+                    {state.hl_bet} 코인을 걸었습니다.
+                    {(state.hl_bonus ?? 0) > 0 && ` 보너스 ${state.hl_bonus} 코인이 더해졌습니다.`}
                   </span>
                 </>
               )}

@@ -286,7 +286,7 @@ export default function Keno({
                 : `다섯 개를 고르면 서버가 ${getRules().keno.draws}개를 뽑습니다.`}
             </span>
             <span className="body-15 text-fg">
-              둘만 겹쳐도 {kenoMult(2)}배다. 다섯은 아무도 못 봤다.
+              두 개만 맞혀도 {kenoMult(2)}배입니다.
             </span>
           </div>
         </div>

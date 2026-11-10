@@ -67,7 +67,15 @@ export function usePresence(
     let retry: number | null = null;
     let channel: RealtimeChannel | null = null;
 
-    const join = () => {
+    const join = async () => {
+      if (!alive) return;
+
+      // supabase-js 는 같은 topic 의 채널이 남아 있으면 새로 만들지 않고 그 채널을
+      // 돌려준다. 이미 subscribe 된 채널에 .on() 을 붙이면 예외가 나므로(개발 모드의
+      // 이중 마운트, 아래 재접속), 남은 lobby 채널을 다 치운 뒤에 만든다.
+      for (const old of supabase.getChannels()) {
+        if (old.topic === "realtime:lobby") await supabase.removeChannel(old);
+      }
       if (!alive) return;
 
       const ch = supabase.channel("lobby", {
@@ -108,14 +116,13 @@ export function usePresence(
           retry = window.setTimeout(() => {
             retry = null;
             if (!alive) return;
-            supabase.removeChannel(ch);
-            join();
+            void join(); // join 이 남은 채널(ch 포함)을 먼저 치운다
           }, 2000);
         }
       });
     };
 
-    join();
+    void join();
 
     return () => {
       alive = false;
