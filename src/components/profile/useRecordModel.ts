@@ -103,7 +103,7 @@ export function useRecordModel(props: RecordProps) {
     // 떠돌이 고양이에게 가장 사랑받는 사람 — 상태 맨 아래 한 줄.
     const fav = await supabase.rpc("cat_favorite");
     setCatFavorite((fav.data as { username: string | null } | null)?.username ?? null);
-  }, [supabase]);
+  }, [supabase, setCatFavorite, setRelations]);
 
   useEffect(() => {
     loadLog();
@@ -113,8 +113,8 @@ export function useRecordModel(props: RecordProps) {
     if (tab === "profile" || tab === "roster") loadNews();
   }, [tab, loadNews, refreshKey]);
 
-  const items = state.items ?? [];
-  const flexStatus = state.flex ?? [];
+  const items = useMemo(() => state.items ?? [], [state.items]);
+  const flexStatus = useMemo(() => state.flex ?? [], [state.flex]);
   // 장착형(wear)은 expires_at 이 null 이다 — 소모형(consume)의 카운트다운과 구분한다.
   // 같은 물건을 겹쳐 장착하면 서버가 그 수만큼 줄을 보내므로 줄 수가 곧 장착 수다.
   const equippedCount = useMemo(() => {

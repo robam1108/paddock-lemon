@@ -42,7 +42,7 @@ export function usePetitionAdmin(core: AdminCore) {
       return;
     }
     setPetitions((data ?? []) as AdminPetition[]);
-  }, [supabase]);
+  }, [supabase, setError]);
 
   const openPetitionThread = useCallback(
     async (id: number) => {
@@ -57,7 +57,7 @@ export function usePetitionAdmin(core: AdminCore) {
       setPetitionReply("");
       petitionReplyPhoto.reset();
     },
-    [supabase, petitionReplyPhoto],
+    [supabase, petitionReplyPhoto, setError],
   );
 
   async function sendPetitionReply() {

@@ -22,6 +22,7 @@
 - 확신이 없는 동작은 코드를 읽어 확인하고 PLAN.md의 (확인 필요) 항목에 결과를 기록한다.
 
 ## 명령
-- npm run dev / build / lint / test
+- npm run dev / build / lint / typecheck / test (Vitest) / test:e2e (Playwright, 로컬은 PW_CHANNEL=chrome)
+- node scripts/fixtures.mjs [--check]   # 서버 규칙 값 → tests/fixtures
 - supabase start / supabase db reset / supabase test db
 - bash scripts/check-theme.sh [경로...]   # 금지어 0건이어야 통과

@@ -25,7 +25,7 @@ export function useRelationAdmin(core: AdminCore) {
       return;
     }
     setRelations((data ?? []) as AdminRelation[]);
-  }, [supabase]);
+  }, [supabase, setError]);
 
   async function approveRelation(id: number) {
     if (busy) return;

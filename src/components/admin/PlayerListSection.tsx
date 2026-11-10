@@ -124,8 +124,8 @@ export default function PlayerListSection({ m }: { m: AdminModel }) {
         </div>
 
         <p className="mono-13 text-fg-low">
-          아이디를 누르면 상세를 볼 수 있습니다. 비밀번호는 되돌릴 수 없는 해시로
-          저장되므로 확인용으로 따로 보관한 값이며, 이 표는 관리자에게만 보입니다.
+          아이디를 누르면 상세를 볼 수 있습니다. 비밀번호는 해시로만 저장되어 관리자도
+          볼 수 없습니다. 초기 비밀번호는 발급할 때 한 번만 보여 줍니다.
         </p>
       </Panel>
 

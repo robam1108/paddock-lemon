@@ -44,7 +44,7 @@ export function useTradeAdmin(core: AdminCore) {
       return;
     }
     setTrades((data ?? []) as AdminTrade[]);
-  }, [supabase]);
+  }, [supabase, setError]);
 
 
   function openLedgerPopup(e: AdminTradeLedger) {

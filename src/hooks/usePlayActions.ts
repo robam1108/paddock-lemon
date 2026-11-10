@@ -75,7 +75,7 @@ export function usePlayActions({
         return null;
       }
     },
-    [supabase],
+    [supabase, setBusy, setError, setLast, setState],
   );
 
   /**
@@ -104,7 +104,7 @@ export function usePlayActions({
       }));
       return result;
     },
-    [canPlay, effectiveBet, runPlayRpc],
+    [canPlay, effectiveBet, runPlayRpc, setState],
   );
 
   /** 하이로우: 판돈을 걸고 판을 연다. 패가 뽑히면 바로 보여준다. */
@@ -119,14 +119,14 @@ export function usePlayActions({
       if (busyRef.current) return null;
       return runPlayRpc("highlow_continue", { p_choice: choice });
     },
-    [runPlayRpc],
+    [runPlayRpc, busyRef],
   );
 
   /** 하이로우 사다리: 적립금 받고 끝내기 */
   const onCashout = useCallback(async (): Promise<PlayResult | null> => {
     if (busyRef.current) return null;
     return runPlayRpc("highlow_cashout");
-  }, [runPlayRpc]);
+  }, [runPlayRpc, busyRef]);
 
   /** 애니메이션이 끝난 뒤 서버가 알려준 최종 상태를 반영한다. */
   const onSettle = useCallback((result: PlayResult) => {
@@ -139,7 +139,7 @@ export function usePlayActions({
     // (적중/적립금 안내는 하이로우 화면이 직접 보여준다)
     const midLadder = result.game === "highlow" && result.hl_bet > 0;
     setLast(midLadder ? null : result);
-  }, []);
+  }, [setBet, setBusy, setLast, setRankKey, setState]);
 
   return { onPlay, onStartHighLow, onContinue, onCashout, onSettle };
 }

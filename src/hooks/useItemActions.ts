@@ -57,7 +57,7 @@ export function useItemActions({
       );
       if (after && item) setUsedPopup(usedItemLines(item, via, before, after));
     },
-    [callStoreRpc],
+    [callStoreRpc, stateRef],
   );
 
   const doUseItem = useCallback(
@@ -115,7 +115,7 @@ export function useItemActions({
       );
       if (after && item) setUsedPopup(usedItemLines(item, "mix", before, after));
     },
-    [callStoreRpc],
+    [callStoreRpc, stateRef],
   );
 
   const doFlexUnequip = useCallback(
@@ -203,7 +203,7 @@ export function useItemActions({
       const ok = await callStoreRpc("sell_item", { p_code: code, p_qty: qty });
       if (ok) setNotice(`${qty}개를 판매했습니다.`);
     },
-    [callStoreRpc],
+    [callStoreRpc, setNotice],
   );
 
   // 성공 여부를 돌려준다 — 상점이 그걸 보고 "오늘 n/3개" 를 바로 올린다.
@@ -213,7 +213,7 @@ export function useItemActions({
       if (ok) setNotice(`${qty}개를 구매했습니다.`);
       return ok !== null;
     },
-    [callStoreRpc],
+    [callStoreRpc, setNotice],
   );
 
   /** 프로필 사진을 Storage에 올린 뒤, 경로만 프로필에 반영한다. */
@@ -223,7 +223,7 @@ export function useItemActions({
       if (ok) setNotice(path ? "사진을 등록했습니다." : "사진을 지웠습니다.");
       return ok !== null;
     },
-    [callStoreRpc],
+    [callStoreRpc, setNotice],
   );
 
   return {

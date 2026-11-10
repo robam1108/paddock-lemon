@@ -1,0 +1,704 @@
+[
+  {
+    "card": 1,
+    "mult": 1.03,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 1,
+    "mult": 0,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 1,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 2,
+    "mult": 1.12,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 2,
+    "mult": 8,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 2,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 3,
+    "mult": 1.24,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 3,
+    "mult": 6.18,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 3,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 4,
+    "mult": 1.37,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 4,
+    "mult": 4.12,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 4,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 5,
+    "mult": 1.54,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 5,
+    "mult": 3.09,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 5,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 6,
+    "mult": 1.76,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 6,
+    "mult": 2.47,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 6,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 7,
+    "mult": 2.06,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 7,
+    "mult": 2.06,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 7,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 8,
+    "mult": 2.47,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 8,
+    "mult": 1.76,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 8,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 9,
+    "mult": 3.09,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 9,
+    "mult": 1.54,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 9,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 10,
+    "mult": 4.12,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 10,
+    "mult": 1.37,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 10,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 11,
+    "mult": 6.18,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 11,
+    "mult": 1.24,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 11,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 12,
+    "mult": 8,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 12,
+    "mult": 1.12,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 12,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 13,
+    "mult": 0,
+    "stage": 1,
+    "choice": "high"
+  },
+  {
+    "card": 13,
+    "mult": 1.03,
+    "stage": 1,
+    "choice": "low"
+  },
+  {
+    "card": 13,
+    "mult": 8,
+    "stage": 1,
+    "choice": "same"
+  },
+  {
+    "card": 1,
+    "mult": 1.08,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 1,
+    "mult": 0,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 1,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 2,
+    "mult": 1.18,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 2,
+    "mult": 8,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 2,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 3,
+    "mult": 1.3,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 3,
+    "mult": 6.5,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 3,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 4,
+    "mult": 1.44,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 4,
+    "mult": 4.33,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 4,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 5,
+    "mult": 1.63,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 5,
+    "mult": 3.25,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 5,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 6,
+    "mult": 1.86,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 6,
+    "mult": 2.6,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 6,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 7,
+    "mult": 2.17,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 7,
+    "mult": 2.17,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 7,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 8,
+    "mult": 2.6,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 8,
+    "mult": 1.86,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 8,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 9,
+    "mult": 3.25,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 9,
+    "mult": 1.63,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 9,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 10,
+    "mult": 4.33,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 10,
+    "mult": 1.44,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 10,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 11,
+    "mult": 6.5,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 11,
+    "mult": 1.3,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 11,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 12,
+    "mult": 8,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 12,
+    "mult": 1.18,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 12,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 13,
+    "mult": 0,
+    "stage": 2,
+    "choice": "high"
+  },
+  {
+    "card": 13,
+    "mult": 1.08,
+    "stage": 2,
+    "choice": "low"
+  },
+  {
+    "card": 13,
+    "mult": 8,
+    "stage": 2,
+    "choice": "same"
+  },
+  {
+    "card": 1,
+    "mult": 1.12,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 1,
+    "mult": 0,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 1,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 2,
+    "mult": 1.22,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 2,
+    "mult": 8,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 2,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 3,
+    "mult": 1.34,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 3,
+    "mult": 6.7,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 3,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 4,
+    "mult": 1.49,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 4,
+    "mult": 4.46,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 4,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 5,
+    "mult": 1.67,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 5,
+    "mult": 3.35,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 5,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 6,
+    "mult": 1.91,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 6,
+    "mult": 2.68,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 6,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 7,
+    "mult": 2.23,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 7,
+    "mult": 2.23,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 7,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 8,
+    "mult": 2.68,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 8,
+    "mult": 1.91,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 8,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 9,
+    "mult": 3.35,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 9,
+    "mult": 1.67,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 9,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 10,
+    "mult": 4.46,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 10,
+    "mult": 1.49,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 10,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 11,
+    "mult": 6.7,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 11,
+    "mult": 1.34,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 11,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 12,
+    "mult": 8,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 12,
+    "mult": 1.22,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 12,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  },
+  {
+    "card": 13,
+    "mult": 0,
+    "stage": 3,
+    "choice": "high"
+  },
+  {
+    "card": 13,
+    "mult": 1.12,
+    "stage": 3,
+    "choice": "low"
+  },
+  {
+    "card": 13,
+    "mult": 8,
+    "stage": 3,
+    "choice": "same"
+  }
+]

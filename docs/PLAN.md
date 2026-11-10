@@ -108,7 +108,7 @@ mini-casino는 콘셉트 문구를 갈아끼우는 리스킨만으로 공개용 
 3. **정산 신뢰성**: `pg_cron` 정산과 lazy 정산의 이중화, 애니메이션과 정산의 분리(`usePendingSettle`).
 4. **운영 사고에서 배운 것**: README에 남은 2026-09-18 사고(옛 `schema.sql`을 통째로 실행해 `play_game` 등이 초기 버전으로 덮이고 RLS가 풀림)과, 그 뒤 만든 "함수 몸통은 한 파일에만 둔다" 규칙. 이 사고가 마이그레이션 구조로 옮겨 가는 동기로 이어진다.
 5. **프론트 성능**: 경주 중계에서 프레임마다 `requestAnimationFrame`이 ref로 DOM을 직접 갱신하고 React는 구간마다 한 번만 다시 그리는 설계(`RaceTrack` 주석 기준).
-6. **거래와 원장**: P2P 거래의 이중 지출 방지와 원장 기록. 행 잠금이나 트랜잭션 처리는 `04_trade.sql`을 직접 확인한 뒤에 쓴다 (확인 필요).
+6. **거래와 원장**: P2P 거래의 이중 지출 방지와 원장 기록. 행 잠금이나 트랜잭션 처리는 `04_trade.sql`을 직접 확인한 뒤에 쓴다 (확인함 — P4: 제안 때는 코인을 묶지 않고, 성사 순간 거래 행과 두 사람의 profiles 행을 id 순으로 잠근 뒤 잔액을 다시 확인한다. 같은 코인으로 건 두 번째 선물은 `PARTNER_SHORT_COINS` 로 실패하는 것을 pgTAP 로 고정했다).
 
 ### 라이브 패치 기록(`repair/`)을 증거로 쓰기
 
@@ -263,13 +263,28 @@ git grep -nE '병동|가축|배급소|밀거래|수감|죄수|교정|무간|흑�
 
 ### P4. 테스트와 CI (3일)
 
-- [ ] Vitest: 룰렛 색/숫자 하우스 엣지 2.00%, 슬롯·하이로우 배당 기대값, 키노 RTP 약 0.98.
-- [ ] Vitest 또는 SQL 시뮬레이션: 경마 배당의 기대값이 `1 − 공제율(0.20)`에 수렴하는지.
-- [ ] pgTAP(`supabase test db`): anon이 코인·판 수를 직접 수정할 수 없음, 마감 전 경주 결과 비노출, 정산을 두 번 호출해도 지급은 한 번, `highlow_continue(null)`은 `INVALID_CHOICE`(회귀), 거래 이중 지출 불가(확인 필요).
-- [ ] Playwright E2E 1개: 로그인 → 경마 베팅 → 결과 확인.
-- [ ] GitHub Actions: lint, typecheck, build, check-theme, vitest, `supabase test db`.
+- [x] Vitest: 룰렛 색/숫자 하우스 엣지 2.00%, 슬롯·하이로우 배당 기대값, 키노 RTP 약 0.98.
+- [x] Vitest 또는 SQL 시뮬레이션: 경마 배당의 기대값이 `1 − 공제율(0.20)`에 수렴하는지.
+- [x] pgTAP(`supabase test db`): anon이 코인·판 수를 직접 수정할 수 없음, 마감 전 경주 결과 비노출, 정산을 두 번 호출해도 지급은 한 번, `highlow_continue(null)`은 `INVALID_CHOICE`(회귀), 거래 이중 지출 불가 — **확인함**: 제안은 코인을 묶지 않고, 성사(`app.exec_trade`) 때 거래 행과 두 사람의 profiles 행을 id 순으로 `for update` 잠근 뒤 잔액을 다시 본다.
+- [x] Playwright E2E 1개: 로그인 → 경마 베팅 → 결과 확인.
+- [x] GitHub Actions: lint, typecheck, build, check-theme, vitest, `supabase test db`.
 
 완료 기준: CI 전부 통과.
+> P4 결과(2026-11-10)
+>
+> **나눈 기준.** 확률 · 권한 · 정산은 서버 함수가 정본이라 **pgTAP 에서 그 함수를 직접** 계산한다(픽스처 불필요). 클라이언트 쪽은 화면 계산이 서버와 같은지를 **Vitest** 로 보고, 비교 기준값은 서버에서 뽑은 픽스처(`tests/fixtures/rules.json` = `get_rules()`, `hl_mult.json` = `app.hl_mult` 전체 117칸)를 쓴다. 픽스처가 서버와 어긋나면 CI 의 `node scripts/fixtures.mjs --check` 가 실패한다.
+>
+> **결과**
+> - lint: ESLint 9 flat config(`eslint.config.mjs`, next/core-web-vitals + next/typescript), `npm run lint` = `eslint .` 0건. P3 분할로 훅 인자가 된 setter · ref 를 의존성 배열에 넣었다(모두 고정 참조라 동작 동일). 루트 레이아웃의 웹폰트 경고는 App Router 오탐이라 그 줄만 끈다.
+> - Vitest 136건(`npm test`): 하이로우 배율 117칸이 서버와 같음 · 적립금 `hlNextPot` 판돈 1~300 전수 일치 · 단계별 기대값, 룰렛 2.00% · 슬롯 1.91%(21³ 전수), 조사 · 시간 표기, 오류 문구.
+> - pgTAP 31건(`npx supabase test db`, `supabase/tests/`): 키노 RTP 0.98 · 3개 적중 1/28.5 · 5개 1/9,261, 경마 단승 · 연승 · 복승 기대값 ≈ 0.80(4,000경주 시뮬레이션, 시드 고정), 마감 전 `result` · 컨디션 비노출, races · race_days 직접 조회 0행, 정산 세 번 호출에 지급 · 기록 한 번, profiles · ledger 직접 수정 차단(authenticated · anon), `highlow_continue(null)` 회귀, `panel_*` NOT_ADMIN / AUTH_REQUIRED, 선물 이중 지출(TRADE_CLOSED · PARTNER_SHORT_COINS, 잔액 음수 없음).
+> - Playwright 1건(`npm run test:e2e`): 준비 단계에서 SQL 로 몇 분 뒤 발주하는 경주를 편성 → demo01 로그인 → Arena · 경마장 → 단승 구매 → 발주 시각을 당기면 화면의 `race_card` 호출이 정산(lazy) → 실황 뒤 성적표 · 내 마권(적중/낙첨). 로컬은 설치된 Chrome(`PW_CHANNEL=chrome`), CI 는 Chromium.
+> - CI(`.github/workflows/ci.yml`): `checks`(lint · typecheck · check-theme · vitest · build) + `db`(supabase start → test db → 픽스처 확인 → build → E2E). 원격 저장소가 아직 없어 **GitHub 에서는 한 번도 돌지 않았다**(로컬에서 각 단계를 같은 명령으로 확인).
+>
+> **테스트가 찾은 결함(수정함)**
+> - `toKoreanError` 가 부분 문자열로 찾아서 `OPPONENT_IN_WARD` · `NOT_IN_WARD` 가 앞에 적힌 `IN_WARD` 문구("휴식 중에는 할 수 없습니다")로 잘못 나갔다 → 메시지 속 코드를 낱말 단위로 찾는다.
+> - 서버가 던지는 코드 5개(`NEED_LIGHTER` · `INVALID_ACTION` · `NOT_A_PLAYER` · `CELLS_FULL` · `INVALID_REASON`)에 화면 문구가 없어 영문 코드가 그대로 보였다 → 추가. 이후 새 코드가 생기면 Vitest 가 잡는다.
+> - 그 밖에: 관리자 목록 안내의 비밀번호 문장을 실제(해시만 저장, 발급 때 한 번 표시)에 맞췄고, `RACE_BET_LOW` 문구에 박혀 있던 "20코인"을 뺐다(규칙 값은 서버가 정본).
 
 ### P5. 데모와 시연 자료 (1\~2일)
 
@@ -345,17 +360,12 @@ P0의 체크리스트를 하나씩 처리하고, 완료 기준을 확인한 뒤 
 
 ### P3. 대형 파일 분할 — 완료 (8절 P3 결과 참고)
 - 프로필 · 관리자 화면은 모델 훅(`useRecordModel` · `useAdminModel`)이 상태를 들고, 탭 · 섹션 컴포넌트가 `m` 에서 꺼내 쓴다. 새 상태는 해당 기능 훅에 넣고 모델이 펼쳐 내보낸다.
-- 주의: `next lint`는 설정이 없어 대화형 프롬프트가 뜬다. P4에서 ESLint CLI(flat config)로 옮긴 뒤 lint를 쓴다.
-- 발견(미수정, 문구): 관리자 플레이어 목록 아래 안내에 "비밀번호는 … 확인용으로 따로 보관한 값" 이라는 문장이 남아 있다. P2부터 평문을 보관하지 않으므로 P4/P6 문구 정리 때 고친다.
 
-### P4. 테스트와 CI
-- Vitest 추가(`npm test`). 클라이언트 순수 함수: `hlMult`·`hlNextPot`(서버 반올림과 일치), `eulReul` 등 조사 도우미.
-- 확률 검증은 **서버 규칙 값 기준**으로: 룰렛 색·숫자 하우스 엣지 2.00%, 슬롯(풀 21칸 + 배당표) 1.91%, 키노 RTP ≈ 0.98(재추첨 `app.keno_*_keep` 포함). 값은 `get_rules()` 결과(또는 `supabase/migrations/*_rules.sql`)를 픽스처로 쓴다.
-- 경마 기대값 ≈ `1 − race_take(0.20)` 시뮬레이션(SQL 또는 Vitest).
-- pgTAP(`supabase/tests/*.sql`, `supabase test db`): anon/authenticated가 `profiles.coins` 직접 수정 불가, 마감 전 경주 결과 비노출, `app.race_settle` 두 번 호출해도 지급 한 번(P2에서 수동 확인함), `highlow_continue(null)` → `INVALID_CHOICE`, 거래 이중 지출 불가(`04_trade` 원본에서 행 잠금 확인 필요), `panel_*`가 비관리자에게 `NOT_ADMIN`.
-- Playwright E2E 1개: 로그인(demo01) → 경마 베팅 → 결과 확인(테스트 경주는 `race_admin_test`가 운영자 계정 전용이라, 시드 경주의 `post_at`을 앞당기는 SQL 헬퍼를 테스트 준비 단계에서 쓴다).
-- GitHub Actions: lint, typecheck, build, check-theme, vitest, `supabase start` + `supabase test db`.
-- 완료 기준: 로컬에서 위 전부 통과(원격 저장소가 아직 없으면 CI는 워크플로 파일 작성까지). 커밋 `P4: 테스트와 CI`.
+### P4. 테스트와 CI — 완료 (8절 P4 결과 참고)
+- 명령: `npm run lint` · `npm run typecheck` · `npm test`(Vitest) · `npx supabase test db`(pgTAP) · `npm run test:e2e`(Playwright, 로컬은 `PW_CHANNEL=chrome` 을 붙이면 브라우저를 따로 받지 않는다) · `npm run fixtures`(서버 규칙 값이 바뀌면 픽스처 다시 뽑기).
+- pgTAP 도우미 `tests.login(이름)` · `tests.as_anon()` · `tests.logout()` 은 `supabase/tests/00_helpers.sql` 에만 있고, 로컬 DB 의 `tests` 스키마에 남는다(`db reset` 하면 다음 `test db` 때 다시 만든다).
+- E2E 는 로컬 DB 를 실제로 바꾼다(demo01 코인 · 에너지 보정, 경주 no=90 편성 후 삭제, 마권 · 기록 1건).
+- 남은 것: CI 는 GitHub 저장소를 만든 뒤 첫 실행에서 확인해야 한다(로컬 Windows 와 달리 runner 의 psql 로 붙는다).
 
 ### P5. 데모와 시연 자료
 - `guest_login` 게스트 체험 RPC(임시 계정 발급, cron으로 코인 주기 초기화) — 새 마이그레이션 파일로.

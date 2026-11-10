@@ -1,0 +1,82 @@
+{
+  "cat": {
+    "bird_plays": 3,
+    "bird_stake": 10
+  },
+  "keno": {
+    "mult": {
+      "2": 1.5,
+      "3": 15,
+      "4": 30,
+      "5": 60
+    },
+    "draws": 10,
+    "picks": 5,
+    "range": 40
+  },
+  "race": {
+    "take": 0.2,
+    "public": true,
+    "max_bet": 300,
+    "min_bet": 20
+  },
+  "slots": {
+    "pool": [
+      "cherry",
+      "cherry",
+      "cherry",
+      "cherry",
+      "cherry",
+      "cherry",
+      "lemon",
+      "lemon",
+      "lemon",
+      "lemon",
+      "lemon",
+      "bell",
+      "bell",
+      "bell",
+      "bell",
+      "star",
+      "star",
+      "star",
+      "seven",
+      "seven",
+      "diamond"
+    ],
+    "triple": {
+      "bell": 8,
+      "star": 12,
+      "lemon": 6,
+      "seven": 25,
+      "cherry": 4,
+      "diamond": 40
+    },
+    "pair_mult": 1.45
+  },
+  "hp_max": 100,
+  "highlow": {
+    "edge": [
+      0.05,
+      0,
+      -0.03
+    ],
+    "max_mult": 8,
+    "max_stage": 3
+  },
+  "roulette": {
+    "slots": 15,
+    "color_mult": 2.1,
+    "number_mult": 14.7
+  },
+  "play_wage": 4,
+  "play_limit": 20,
+  "rest_hours": 14,
+  "hp_per_play": 1,
+  "pvp_min_bet": 50,
+  "clover_stake": 15,
+  "initial_coins": 20,
+  "operator_name": "admin",
+  "bonus_plays_max": 8,
+  "extra_plays_max": 8
+}

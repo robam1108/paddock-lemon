@@ -26,7 +26,7 @@ export function useAdminModel(username: string) {
     supabase.rpc("panel_items").then(({ data }) => {
       if (data) setCatalog(data as ItemDef[]);
     });
-  }, [load, loadTrades, loadRelations, loadPetitions, supabase]);
+  }, [load, loadTrades, loadRelations, loadPetitions, supabase, setCatalog]);
 
 
   return { username, ...core, ...pet, ...rel, ...tr };

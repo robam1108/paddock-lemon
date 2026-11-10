@@ -120,14 +120,23 @@ export const ERROR_MESSAGES: Record<string, string> = {
   RACE_NOT_OPEN: "경마장이 아직 열리지 않았습니다.",
   RACE_NOT_FOUND: "그런 경주가 없습니다.",
   RACE_CLOSED: "출발 시각이 지나 베팅이 마감됐습니다.",
-  RACE_BET_LOW: "베팅은 최소 20코인부터입니다.",
+  RACE_BET_LOW: "한 장 최소 베팅 금액보다 적습니다.",
   RACE_BET_HIGH: "한 경주에 걸 수 있는 한도를 넘었습니다.",
+  NEED_LIGHTER: "라이터가 있어야 구울 수 있습니다.",
+  INVALID_ACTION: "할 수 없는 동작입니다.",
+  NOT_A_PLAYER: "이 대결의 참가자가 아닙니다.",
+  CELLS_FULL: "배정할 수 있는 빈 룸이 없습니다.",
+  INVALID_REASON: "사유가 올바르지 않습니다.",
 };
 
+/**
+ * 서버 메시지 안의 오류 코드를 낱말 단위로 찾는다. 부분 문자열로 찾으면
+ * OPPONENT_IN_WARD · NOT_IN_WARD 가 앞에 적힌 IN_WARD 문구로 잘못 바뀐다.
+ */
 export function toKoreanError(message: string | undefined): string {
   if (!message) return "알 수 없는 오류가 발생했습니다.";
-  for (const [key, text] of Object.entries(ERROR_MESSAGES)) {
-    if (message.includes(key)) return text;
+  for (const code of message.match(/[A-Z][A-Z0-9_]*/g) ?? []) {
+    if (Object.hasOwn(ERROR_MESSAGES, code)) return ERROR_MESSAGES[code];
   }
   return message;
 }
