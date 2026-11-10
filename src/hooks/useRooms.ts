@@ -20,10 +20,10 @@ function cellOrder(label: string): [number, number] {
 /**
  * 룸 배치(안내)용. 배정 자체는 DB(app.assign_cell() / 매주 월요일 06:00 KST 에
  * 도는 app.cell_rotate())가 이미 정해 두었으므로,
- * 여기서는 inmate_roster() 가 주는 cell_id/cell 을 그대로 묶기만 한다 —
+ * 여기서는 player_roster() 가 주는 cell_id/cell 을 그대로 묶기만 한다 —
  * 다시 계산하지 않으므로 프로필(state.cell)과 항상 일치한다.
  *
- * public.cells 는 RLS 정책이 없어 클라이언트가 직접 못 읽는다. inmate_roster() 는
+ * public.cells 는 RLS 정책이 없어 클라이언트가 직접 못 읽는다. player_roster() 는
  * 배정된 사람이 있는 룸만 보여 주므로, 빈 룸은 배치에 나타나지 않는다.
  */
 export function useRooms(supabase: SupabaseClient) {
@@ -33,7 +33,7 @@ export function useRooms(supabase: SupabaseClient) {
     let active = true;
 
     const load = async () => {
-      const { data } = await supabase.rpc("inmate_roster");
+      const { data } = await supabase.rpc("player_roster");
       if (active && data) {
         setRoster(data as RosterRow[]);
       }
@@ -47,7 +47,7 @@ export function useRooms(supabase: SupabaseClient) {
 
   /** 명단을 다시 읽는다 — 함께 쓰기 팝업이 열릴 때 휴식 여부를 새로 맞춘다. */
   const reload = useCallback(async () => {
-    const { data } = await supabase.rpc("inmate_roster");
+    const { data } = await supabase.rpc("player_roster");
     if (data) setRoster(data as RosterRow[]);
   }, [supabase]);
 

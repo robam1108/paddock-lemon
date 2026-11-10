@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import Casino from "@/components/Casino";
 import type { PlayerState } from "@/lib/game";
+import type { Rules } from "@/lib/server-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +38,12 @@ export default async function PlayPage() {
 
   if (!user) redirect("/login");
 
-  const { state, error } = await loadState(supabase);
+  const [{ state, error }, rulesRes] = await Promise.all([
+    loadState(supabase),
+    supabase.rpc("get_rules"),
+  ]);
 
-  if (!state) {
+  if (!state || !rulesRes.data) {
     const schemaMissing = /does not exist|schema cache|PGRST202/i.test(
       error ?? "",
     );
@@ -52,7 +56,7 @@ export default async function PlayPage() {
           </div>
           <div className="flex flex-col gap-1 p-4">
             <p className="title-19 text-loss">프로필을 불러오지 못했습니다.</p>
-            <p className="mono-13 text-fg-mid break-all">{error}</p>
+            <p className="mono-13 text-fg-mid break-all">{error ?? rulesRes.error?.message}</p>
 
             <a
               href="/play"
@@ -63,7 +67,7 @@ export default async function PlayPage() {
 
             <p className="body-15 text-fg-low mt-2">
               {schemaMissing
-                ? "Supabase 에서 supabase/APPLY.md 의 순서대로 SQL 을 실행했는지 확인할 것."
+                ? "DB 마이그레이션이 적용됐는지 확인해 주세요(supabase db reset 또는 db push)."
                 : "일시적인 장애일 수 있습니다. 반복되면 관리자에게 문의해 주세요."}
             </p>
           </div>
@@ -72,5 +76,5 @@ export default async function PlayPage() {
     );
   }
 
-  return <Casino userId={user.id} initialState={state} />;
+  return <Casino userId={user.id} initialState={state} rules={rulesRes.data as Rules} />;
 }

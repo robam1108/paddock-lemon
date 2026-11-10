@@ -9,16 +9,23 @@
 - 스택: Next.js (App Router) · TypeScript · Tailwind CSS · Supabase (Postgres, RLS, Realtime, pg_cron) · Vercel
 - 대표 기능: 경마(몬테카를로 고정배당, 레이스 중계), 서버 판정 4게임(룰렛·슬롯·하이로우·키노), 1:1 대전, P2P 거래와 원장
 
-## 상태
+## 로컬 실행
 
-공개 정리 작업 중입니다. 진행 계획과 단계별 완료 기준은 [docs/PLAN.md](docs/PLAN.md)를 보세요.
-로컬 실행법(`supabase start` 기준)은 DB 재구성 단계(P2) 이후에 정리합니다.
+필요한 것: Node.js 20+, Docker Desktop(실행 중).
 
 ```bash
 npm install
-cp .env.local.example .env.local   # Supabase URL / publishable key 입력
+npm run db:start                    # 로컬 Supabase(Postgres · Auth · Storage · Realtime) 기동
+npm run db:reset                    # supabase/migrations 전부 + supabase/seed.sql 적용
+cp .env.local.example .env.local    # 키는 npx supabase status 의 Publishable key
 npm run dev
 ```
+
+로컬 데모 계정: `demo01` ~ `demo03` / `paddock-demo`, 관리자 `admin` / `paddock-admin` (seed.sql — 로컬 전용).
+
+DB 구조는 `supabase/migrations/` 에 도메인별로 나뉘어 있다(core · items · games · trade · arena · social · admin · missions · explore · race · rules · platform). 같은 함수의 몸통은 한 파일에만 있고, 운영 DB 변경은 새 마이그레이션 파일로만 추가한다.
+
+공개 정리 진행 상황은 [docs/PLAN.md](docs/PLAN.md)를 보세요.
 
 ## 라이선스
 

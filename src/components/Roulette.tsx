@@ -2,15 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  ROULETTE_BETS,
-  ROULETTE_NUMBER_MULT,
-  ROULETTE_SLOTS,
   isNumberBet,
+  rouletteBets,
   rouletteChoiceLabel,
   rouletteColor,
   type PlayResult,
 } from "@/lib/game";
 import { LABEL } from "@/lib/copy";
+import { getRules } from "@/lib/server-rules";
 import MonoLabel from "./ui/MonoLabel";
 import { usePendingSettle } from "@/hooks/usePendingSettle";
 
@@ -21,7 +20,8 @@ import { usePendingSettle } from "@/hooks/usePendingSettle";
  * 하이로우와 같은 골격을 쓴다: 배당 레일 | 게임 존 | 건 코인.
  */
 
-const SEG = 360 / ROULETTE_SLOTS; // 24도
+/** 칸 하나의 각도(15칸이면 24도). 칸 수는 서버 규칙 값이다. */
+const seg = () => 360 / getRules().roulette.slots;
 const SPIN_MS = 4200;
 
 // 물감 색. 강조색이 아니라 원판에 칠해진 도료다.
@@ -32,9 +32,9 @@ const SEGMENT_FILL: Record<string, string> = {
 };
 
 function wheelGradient() {
-  const stops = Array.from({ length: ROULETTE_SLOTS }, (_, i) => {
+  const stops = Array.from({ length: getRules().roulette.slots }, (_, i) => {
     const fill = SEGMENT_FILL[rouletteColor(i)];
-    return `${fill} ${i * SEG}deg ${(i + 1) * SEG}deg`;
+    return `${fill} ${i * seg()}deg ${(i + 1) * seg()}deg`;
   });
   return `conic-gradient(${stops.join(", ")})`;
 }
@@ -79,8 +79,8 @@ export default function Roulette({
 
   const numberBet = isNumberBet(choice);
   const payoutMult = numberBet
-    ? ROULETTE_NUMBER_MULT
-    : (ROULETTE_BETS.find((b) => b.id === choice)?.mult ?? 2);
+    ? getRules().roulette.number_mult
+    : (rouletteBets().find((b) => b.id === choice)?.mult ?? 2);
 
   async function spin() {
     if (disabled || spinning) return;
@@ -94,7 +94,7 @@ export default function Roulette({
     setLanded(null);
 
     // 항상 시계방향으로 최소 5바퀴 이상 돌면서 slot 이 위쪽 포인터에 오도록 한다.
-    const target = -(slot * SEG + SEG / 2);
+    const target = -(slot * seg() + seg() / 2);
     const next =
       target + 360 * Math.ceil((rotationRef.current + 360 * 5 - target) / 360);
     rotationRef.current = next;
@@ -132,8 +132,8 @@ export default function Roulette({
             >
               {/* 라벨: 바깥 div 를 휠 중심 기준으로 돌리고, 안쪽 글자를 되돌려 세운다.
                   이렇게 하면 휠 지름이 바뀌어도 위치가 그대로 유지된다. */}
-              {Array.from({ length: ROULETTE_SLOTS }, (_, i) => {
-                const angle = i * SEG + SEG / 2;
+              {Array.from({ length: getRules().roulette.slots }, (_, i) => {
+                const angle = i * seg() + seg() / 2;
                 return (
                   <div
                     key={i}
@@ -201,7 +201,7 @@ export default function Roulette({
           <div className="bg-bg-1 flex flex-col gap-2 p-2.5">
             <MonoLabel>색에 걸기</MonoLabel>
             <div className="grid grid-cols-3 gap-1">
-              {ROULETTE_BETS.map((b) => (
+              {rouletteBets().map((b) => (
                 <button
                   key={b.id}
                   type="button"
@@ -225,9 +225,9 @@ export default function Roulette({
 
           {/* 숫자에 걸기 */}
           <div className="bg-bg-1 flex flex-col gap-2 p-2.5">
-            <MonoLabel>숫자에 걸기 ×{ROULETTE_NUMBER_MULT}</MonoLabel>
+            <MonoLabel>숫자에 걸기 ×{getRules().roulette.number_mult}</MonoLabel>
             <div className="grid grid-cols-5 gap-1 tab:grid-cols-8 desk:grid-cols-15">
-              {Array.from({ length: ROULETTE_SLOTS }, (_, n) => (
+              {Array.from({ length: getRules().roulette.slots }, (_, n) => (
                 <button
                   key={n}
                   type="button"

@@ -8,7 +8,6 @@
 
 import {
   CARD_LABELS,
-  CLOVER_STAKE,
   formatDaysLeft,
   formatDuration,
   MIX_TO,
@@ -16,13 +15,12 @@ import {
   type InventoryItem,
   type LaborResult,
   type PlayerState,
-  CAT_BIRD_PLAYS,
-  CAT_BIRD_STAKE,
   CAT_FISH_CODES,
   type CatActResult,
   type SearchResult,
 } from "./game";
 import { INSTRUMENTS } from "./gear";
+import { getRules } from "./server-rules";
 import { LABOR_JOBS, SEARCH_FINDS, searchTier } from "./labor";
 
 /* ── 공통 라벨 ─────────────────────────────────────────────── */
@@ -426,16 +424,16 @@ export function catTossLines(name: string | null, itemName: string, seed: number
 
 /**
  * 선물 사용 팝업(쓰기 전). 두 줄의 묘사만 — 효과는 쓴 뒤(catGiftUsedLines)에 알려 준다.
- * 코드: dead_bird = 깃털, dead_mouse = 장난감 쥐, dead_bug = 나비 (코드값 변경은 P2).
+ * 코드: feather = 깃털, toy_mouse = 장난감 쥐, butterfly = 나비.
  */
 export function catGiftUseInfo(code: string, name: string | null): { lines: string[] } {
   const n = catName(name);
   switch (code) {
-    case "dead_bird":
+    case "feather":
       return {
         lines: ["작은 깃털이 아직 바람결을 기억하고 있다.", `${n}${iGa(n)} 하늘에서 떨어진 운을 물어 왔다.`],
       };
-    case "dead_mouse":
+    case "toy_mouse":
       return {
         lines: ["실밥이 풀린 장난감 쥐다. 여기저기 끌고 다닌 흔적이 있다.", `${n}${iGa(n)} 숨은 물건을 찾는 법을 알려 주려는 것 같다.`],
       };
@@ -452,9 +450,9 @@ export const CAT_GIFT_ACTIVE_LINE = "앞서 쓴 선물의 효과가 아직 남�
 /** 선물을 쓴 뒤. */
 export function catGiftUsedLines(code: string): string[] {
   switch (code) {
-    case "dead_bird":
-      return ["깃털을 가슴께에 꽂았다. 판 위에 바람이 분다.", `앞으로 ${CAT_BIRD_PLAYS}판, 판돈 +${CAT_BIRD_STAKE}`];
-    case "dead_mouse":
+    case "feather":
+      return ["깃털을 가슴께에 꽂았다. 판 위에 바람이 분다.", `앞으로 ${getRules().cat.bird_plays}판, 판돈 +${getRules().cat.bird_stake}`];
+    case "toy_mouse":
       return ["장난감 쥐를 주머니에 넣었다. 눈이 밝아진 것 같다.", "다음 탐험 한 번, 좋은 물건이 나올 확률이 오른다"];
     default:
       return ["나비를 날려 보내고 잠시 바라봤다. 어깨에 힘이 들어간다.", "다음 미션 한 번, 보상이 후해진다"];
@@ -578,7 +576,7 @@ export function usedItemLines(
     );
   }
   if (item.win_double > 0) lines.push(`다음 승리 판돈 2배 · 남은 ${after.win_double}회`);
-  if (item.kind === "charm") lines.push(`판돈 +${CLOVER_STAKE} · ${item.flex_hours ?? 6}시간`);
+  if (item.kind === "charm") lines.push(`판돈 +${getRules().clover_stake} · ${item.flex_hours ?? 6}시간`);
   if (via === "flex_equip" || via === "flex_unequip") {
     // 겹쳐 장착한 것은 state_json 이 그 수만큼 줄을 펼쳐 보내므로 줄 수가 곧 칸 수다.
     const worn = (after.flex ?? []).filter((f) => f.expires_at === null).length;

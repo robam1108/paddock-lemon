@@ -9,7 +9,8 @@ import {
   ADMIN_REASON_LABEL,
   LEDGER_KIND_LABEL,
   rouletteChoiceLabel,
-  SLOT_SYMBOLS,
+  SLOT_EMOJI,
+  slotTripleMult,
   formatDaysLeft,
   formatDuration,
   hasLighter,
@@ -86,7 +87,7 @@ type RosterEntry = {
   in_ward: boolean;
   cell_id: number | null;
   cell: string | null;
-  crime: string | null;
+  status_message: string | null;
   age: number | null;
   height_cm: number | null;
   weight_kg: number | null;
@@ -181,10 +182,10 @@ function gameLine(title: string, detail: Record<string, unknown>): string | null
     const reels = outcome.reels as SlotSymbol[] | undefined;
     const kind = outcome.kind as "triple" | "pair" | "none" | undefined;
     if (!reels || !kind) return null;
-    const icons = reels.map((r) => SLOT_SYMBOLS[r].emoji).join("");
+    const icons = reels.map((r) => SLOT_EMOJI[r]).join("");
     const result =
       kind === "triple"
-        ? `세 칸 ×${SLOT_SYMBOLS[reels[0]].mult}`
+        ? `세 칸 ×${slotTripleMult(reels[0])}`
         : kind === "pair"
           ? "두 칸"
           : "꽝";
@@ -275,7 +276,7 @@ function ProfileCard({
   username,
   avatarUrl,
   cell,
-  crime,
+  status_message,
   age,
   heightCm,
   weightKg,
@@ -293,7 +294,7 @@ function ProfileCard({
   username: string;
   avatarUrl: string | null;
   cell: string | null;
-  crime: string | null;
+  status_message: string | null;
   age: number | null;
   heightCm: number | null;
   weightKg: number | null;
@@ -349,7 +350,7 @@ function ProfileCard({
 
         {/* 상태 메시지 → 룸 */}
         <div className="border-line-soft mt-auto flex flex-col gap-1 border-t pt-3">
-          <span className="mono-13 text-fg-mid truncate">{crime || "상태 메시지 없음"}</span>
+          <span className="mono-13 text-fg-mid truncate">{status_message || "상태 메시지 없음"}</span>
           {cell && <span className="mono-13 text-fg-mid">룸 {cell}</span>}
         </div>
       </Panel>
@@ -458,7 +459,7 @@ export default function Record({
   onAvatarChange: (path: string | null) => Promise<boolean>;
   /** 상태 메시지·나이·키/체중·소개를 프로필에 반영한다 */
   onDetailsChange: (args: {
-    p_crime: string;
+    p_status_message: string;
     p_age: number | null;
     p_height_cm: number | null;
     p_weight_kg: number | null;
@@ -548,7 +549,7 @@ export default function Record({
     const feed = await supabase.rpc("relations_feed");
     if (feed.data) setRelations(feed.data as RelationEntry[]);
 
-    const { data: players } = await supabase.rpc("inmate_roster");
+    const { data: players } = await supabase.rpc("player_roster");
     if (players) setRoster(players as RosterEntry[]);
 
     // 떠돌이 고양이에게 가장 사랑받는 사람 — 상태 맨 아래 한 줄.
@@ -600,11 +601,10 @@ export default function Record({
   }
 
   // 같은 선물 효과가 아직 남아 있는가 — 사용 팝업이 [쓴다] 를 막는다.
-  // 장난감 쥐(dead_mouse)의 탐험 보너스 상태는 P2에서 서버가 함께 내려준다.
   function catGiftActive(code: string): boolean {
     if (!catStatus) return false;
-    if (code === "dead_bird") return catStatus.bless_left > 0;
-    if (code === "dead_mouse") return false;
+    if (code === "feather") return catStatus.bless_left > 0;
+    if (code === "toy_mouse") return !!catStatus.search_ready;
     return !!catStatus.labor_ready;
   }
 
@@ -812,7 +812,7 @@ export default function Record({
 
   function openDetailsForm() {
     setDetailsError(null);
-    setDCrime(state.crime ?? "");
+    setDCrime(state.status_message ?? "");
     setDAge(state.age != null ? String(state.age) : "");
     setDHeight(state.height_cm != null ? String(state.height_cm) : "");
     setDWeight(state.weight_kg != null ? String(state.weight_kg) : "");
@@ -826,7 +826,7 @@ export default function Record({
     setDetailsError(null);
     const toNum = (v: string) => (v.trim() === "" ? null : Number(v));
     const ok = await onDetailsChange({
-      p_crime: dCrime.trim(),
+      p_status_message: dCrime.trim(),
       p_age: toNum(dAge),
       p_height_cm: toNum(dHeight),
       p_weight_kg: toNum(dWeight),
@@ -890,7 +890,7 @@ export default function Record({
             username={state.username}
             avatarUrl={avatarUrl}
             cell={state.cell}
-            crime={state.crime}
+            status_message={state.status_message}
             age={state.age}
             heightCm={state.height_cm}
             weightKg={state.weight_kg}
@@ -1437,7 +1437,7 @@ export default function Record({
               username={picked.username}
               avatarUrl={playerAvatarUrl(picked.avatar_path)}
               cell={picked.cell}
-              crime={picked.crime}
+              status_message={picked.status_message}
               age={picked.age}
               heightCm={picked.height_cm}
               weightKg={picked.weight_kg}

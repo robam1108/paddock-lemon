@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { setRules, type Rules } from "@/lib/server-rules";
 import {
-  GAMES,
+  gameList,
   SECTIONS,
   itemAction,
   MILK,
@@ -76,10 +77,14 @@ const ZONE: Record<Section, string | undefined> = {
 export default function Casino({
   userId,
   initialState,
+  rules,
 }: {
   userId: string;
   initialState: PlayerState;
+  /** 서버 get_rules() — 자식이 그리기 전에 규칙 저장소에 넣는다 */
+  rules: Rules;
 }) {
+  setRules(rules);
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -102,7 +107,7 @@ export default function Casino({
   const [game, setGame] = useState<GameId>("roulette");
   // Arena 안의 판 — 1:1 대전 · 경마장
   const [blackTab, setBlackTab] = useState<"pvp" | "race">("pvp");
-  // 경마장은 정식 오픈(RACE_PUBLIC) 전까지 시험 계정(이름이 관리자인 관리자)에게만 보인다.
+  // 경마장은 공개 스위치(get_rules().race.public)가 꺼져 있으면 운영자 계정에게만 보인다.
   const raceVisible = canSeeRace(state);
   const [bet, setBet] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -549,7 +554,7 @@ export default function Casino({
    */
   const onDetailsChange = useCallback(
     async (args: {
-      p_crime: string;
+      p_status_message: string;
       p_age: number | null;
       p_height_cm: number | null;
       p_weight_kg: number | null;
@@ -825,7 +830,7 @@ export default function Casino({
             {section === "WHITE" && (
               <>
                 <TabRail
-                  items={GAMES.map((g) => ({ id: g.id, label: g.name }))}
+                  items={gameList().map((g) => ({ id: g.id, label: g.name }))}
                   value={game}
                   onChange={(id) => {
                     setGame(id);

@@ -33,6 +33,7 @@ import {
 import { laborTitle } from "@/lib/labor";
 import Panel from "./ui/Panel";
 import MonoLabel from "./ui/MonoLabel";
+import { setRules, type Rules } from "@/lib/server-rules";
 import PetitionPhoto from "./ui/PetitionPhoto";
 import {
   usePhotoAttach,
@@ -149,24 +150,24 @@ function ReasonPicker({
   );
 }
 
-export default function AdminPanel({ username }: { username: string }) {
+export default function AdminPanel({ username, rules }: { username: string; rules: Rules }) {
+  setRules(rules);
   const supabase = useMemo(() => createClient(), []);
 
   const [players, setPlayers] = useState<AdminPlayer[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [showCodes, setShowCodes] = useState(false);
 
   // 새 플레이어
   const [newName, setNewName] = useState("");
-  const [issued, setIssued] = useState<{ name: string; code: string } | null>(
+  const [issued, setIssued] = useState<{ name: string; password: string } | null>(
     null,
   );
 
   // 플레이어 삭제 — 이름과 코드가 모두 맞아야 하고, 되묻기를 한 번 거친다.
   const [delName, setDelName] = useState("");
-  const [delCode, setDelCode] = useState("");
+  const [delConfirm, setDelConfirm] = useState("");
   const [delConfirmOpen, setDelConfirmOpen] = useState(false);
 
   // 코인 지급
@@ -534,7 +535,7 @@ export default function AdminPanel({ username }: { username: string }) {
       return;
     }
 
-    const result = data as { name: string; code: string };
+    const result = data as { name: string; password: string };
     setIssued(result);
     setNewName("");
     await load();
@@ -542,8 +543,8 @@ export default function AdminPanel({ username }: { username: string }) {
 
   async function deletePlayer() {
     const name = delName.trim();
-    const code = delCode.trim();
-    if (!name || !code || busy) return;
+    const confirm = delConfirm.trim();
+    if (!name || !confirm || busy) return;
 
     setBusy(true);
     setError(null);
@@ -552,7 +553,7 @@ export default function AdminPanel({ username }: { username: string }) {
 
     const { data, error: rpcError } = await supabase.rpc(
       "panel_delete_player",
-      { p_name: name, p_code: code },
+      { p_name: name, p_confirm: confirm },
     );
     setBusy(false);
     setDelConfirmOpen(false);
@@ -563,9 +564,9 @@ export default function AdminPanel({ username }: { username: string }) {
     }
 
     const result = data as { name: string };
-    setNotice(`${result.name} 를 삭제했다.`);
+    setNotice(`${result.name} 계정을 삭제했습니다.`);
     setDelName("");
-    setDelCode("");
+    setDelConfirm("");
     if (detail?.username === result.name) setDetail(null);
     await load();
   }
@@ -964,10 +965,10 @@ export default function AdminPanel({ username }: { username: string }) {
               <MonoLabel tone="dim">발급 완료</MonoLabel>
               <p className="title-19 text-fg-hi mt-1">{issued.name}</p>
               <p className="num-md text-brass mt-1 tracking-[0.2em] tabular-nums">
-                {issued.code}
+                {issued.password}
               </p>
               <p className="mono-13 text-fg-low mt-1">
-                이 비밀번호를 본인에게 전달해 주세요.
+                초기 비밀번호는 지금 한 번만 보입니다. 본인에게 전달해 주세요.
               </p>
             </div>
           )}
@@ -1449,13 +1450,7 @@ export default function AdminPanel({ username }: { username: string }) {
             <h2 className="title-19 text-fg-hi">
               플레이어 {listLoading && players.length === 0 ? "조회 중" : `${players.length}명`}
             </h2>
-            <button
-              onClick={() => setShowCodes((v) => !v)}
-              className={`${SMALL} ml-auto`}
-            >
-              {showCodes ? "초기 비밀번호 숨기기" : "초기 비밀번호 보기"}
-            </button>
-            <button onClick={load} className={SMALL}>
+            <button onClick={load} className={`${SMALL} ml-auto`}>
               새로고침
             </button>
           </div>
@@ -1472,7 +1467,6 @@ export default function AdminPanel({ username }: { username: string }) {
               <thead>
                 <tr className="label-11 text-fg-low border-line-soft border-b">
                   <th className="pb-2 pr-2 font-normal">아이디</th>
-                  <th className="pb-2 pr-2 font-normal">초기 비밀번호</th>
                   <th className="pb-2 pr-2 font-normal">상태</th>
                   <th className="pb-2 pr-2 text-right font-normal">에너지</th>
                   <th className="pb-2 pr-2 text-right font-normal">코인</th>
@@ -1509,9 +1503,6 @@ export default function AdminPanel({ username }: { username: string }) {
                       {p.is_admin && (
                         <span className="label-11 text-brass ml-1">ADMIN</span>
                       )}
-                    </td>
-                    <td className="text-fg-mid py-2 pr-2 tabular-nums">
-                      {showCodes ? p.code : "••••-••••••"}
                     </td>
                     <td className="py-2 pr-2">
                       <span
@@ -2081,7 +2072,7 @@ export default function AdminPanel({ username }: { username: string }) {
         <Panel className="flex flex-col gap-2">
           <SectionHead
             title="플레이어 삭제"
-            desc="아이디와 초기 비밀번호가 모두 맞아야 지웁니다. 지우면 기록도 함께 사라집니다."
+            desc="실수를 막으려고 아이디를 두 번 입력합니다. 지우면 기록도 함께 사라집니다."
           />
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
@@ -2091,13 +2082,13 @@ export default function AdminPanel({ username }: { username: string }) {
               className={FIELD}
             />
             <input
-              value={delCode}
-              onChange={(e) => setDelCode(e.target.value)}
-              placeholder="초기 비밀번호"
+              value={delConfirm}
+              onChange={(e) => setDelConfirm(e.target.value)}
+              placeholder="아이디 한 번 더"
               className={FIELD}
             />
             <button
-              disabled={busy || !delName.trim() || !delCode.trim()}
+              disabled={busy || !delName.trim() || !delConfirm.trim()}
               onClick={() => setDelConfirmOpen(true)}
               className={DANGER}
             >

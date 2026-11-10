@@ -2,19 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePendingSettle } from "@/hooks/usePendingSettle";
-import { SLOT_PAIR_MULT, SLOT_POOL, SLOT_SYMBOLS, type PlayResult, type SlotSymbol } from "@/lib/game";
+import { SLOT_EMOJI, slotTripleMult, type PlayResult, type SlotSymbol } from "@/lib/game";
+import { getRules } from "@/lib/server-rules";
 import { LABEL } from "@/lib/copy";
 import MonoLabel from "./ui/MonoLabel";
 
 /**
  * 슬롯머신 — 릴 그림을 두 글자 코드로 찍는다(등폭 정렬).
- * 그래서 두 글자 코드로만 찍힌다. 아무도 그게 체리인지 종인지 신경 쓰지 않는다.
  */
 
 const STOP_AT = [900, 1350, 1800]; // 릴이 차례로 멈추는 시각(ms)
 
 function randomSymbol(): SlotSymbol {
-  return SLOT_POOL[Math.floor(Math.random() * SLOT_POOL.length)];
+  const pool = getRules().slots.pool as SlotSymbol[];
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 export default function Slots({
@@ -110,7 +111,7 @@ export default function Slots({
     timeouts.current.push(done);
   }
 
-  const payouts = (Object.keys(SLOT_SYMBOLS) as SlotSymbol[]).slice().reverse();
+  const payouts = (Object.keys(SLOT_EMOJI) as SlotSymbol[]).slice().reverse();
 
   return (
     <div className="flex flex-col gap-2">
@@ -124,10 +125,10 @@ export default function Slots({
               className="bg-surface flex min-h-9 flex-1 items-center justify-between gap-1 px-2"
             >
               <span className="text-[18px] leading-none">
-                {SLOT_SYMBOLS[key].emoji}
+                {SLOT_EMOJI[key]}
               </span>
               <span className="mono-13 text-fg tabular-nums">
-                ×{SLOT_SYMBOLS[key].mult}
+                ×{slotTripleMult(key)}
               </span>
             </div>
           ))}
@@ -150,7 +151,7 @@ export default function Slots({
                     spinning[i] ? "opacity-50" : "opacity-100"
                   }`}
                 >
-                  {SLOT_SYMBOLS[symbol].emoji}
+                  {SLOT_EMOJI[symbol]}
                 </span>
               </div>
             ))}
@@ -166,12 +167,12 @@ export default function Slots({
           <div className="border-brass-line flex flex-col gap-1 border bg-brass-fill p-3">
             <MonoLabel>최대 배당</MonoLabel>
             <span className="num-md text-fg-hi tabular-nums">
-              ×{SLOT_SYMBOLS.diamond.mult}
+              ×{slotTripleMult("diamond")}
             </span>
           </div>
           <div className="bg-surface col-span-2 hidden flex-1 flex-col justify-end gap-1.5 p-3 desk:flex">
             <span className="body-15 text-fg-mid">
-              세 칸이 같으면 표의 배당, 두 칸만 같으면 ×{SLOT_PAIR_MULT}다.
+              세 칸이 같으면 표의 배당, 두 칸만 같으면 ×{getRules().slots.pair_mult}다.
             </span>
             <span className="body-15 text-fg">
               레버는 없다. 눌러도 결과는 이미 정해져 있다.

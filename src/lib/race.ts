@@ -1,21 +1,18 @@
 /* ---------------- 경마장 (Arena) ----------------
- * 서버 정본은 supabase/22_horse_race.sql. 여기 있는 건 표시용 값과 타입뿐이다.
+ * 서버 정본은 supabase/migrations/*_race.sql. 여기 있는 건 표시용 값과 타입뿐이다.
  */
 
-/** 정식 오픈 스위치 — 서버 app.race_public() 과 같이 바꾼다(2026-10-29 오픈).
- *  false 면 시험 계정에게만 경마장 탭과 라디오 경마 소식이 보인다. */
-export const RACE_PUBLIC = true;
+import { getRules } from "./server-rules";
 
-/** 시험 계정 이름 — 관리자 권한이 있고 이 이름인 계정 하나. 서버 app.race_tester_name() 과 같이 바꾼다. */
-export const RACE_TESTER = "관리자";
-
+/** 시험 계정 — 관리자 권한이 있는 운영자 계정(get_rules().operator_name).
+ *  공개 스위치(get_rules().race.public)가 false 면 이 계정에게만 경마장이 보인다. */
 export function isRaceTester(s: { is_admin: boolean; username: string }): boolean {
-  return s.is_admin && s.username === RACE_TESTER;
+  return s.is_admin && s.username === getRules().operator_name;
 }
 
 /** 경마장이 보이는가 — 오픈 뒤엔 모두, 그 전엔 시험 계정만 */
 export function canSeeRace(s: { is_admin: boolean; username: string }): boolean {
-  return RACE_PUBLIC || isRaceTester(s);
+  return getRules().race.public || isRaceTester(s);
 }
 
 export type RaceKind = "win" | "place" | "quin";

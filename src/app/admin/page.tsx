@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AdminPanel from "@/components/AdminPanel";
 import type { PlayerState } from "@/lib/game";
+import type { Rules } from "@/lib/server-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +14,15 @@ export default async function AdminPage() {
 
   if (!user) redirect("/login");
 
-  const { data } = await supabase.rpc("get_my_state");
+  const [{ data }, rulesRes] = await Promise.all([
+    supabase.rpc("get_my_state"),
+    supabase.rpc("get_rules"),
+  ]);
   const state = data as PlayerState | null;
 
   // 화면 차단은 편의일 뿐이고, 실제 방어는 panel_* 함수 안의
   // app.require_admin() 이 담당한다.
   if (!state?.is_admin) redirect("/play");
 
-  return <AdminPanel username={state.username} />;
+  return <AdminPanel username={state.username} rules={rulesRes.data as Rules} />;
 }

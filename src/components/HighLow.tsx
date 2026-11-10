@@ -4,7 +4,6 @@ import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from "react"
 import {
   CARD_LABELS,
   HL_CHOICES,
-  HL_MAX_STAGE,
   hlMult,
   hlNextPot,
   hlWinChance,
@@ -22,6 +21,7 @@ import {
   VERDICT,
 } from "@/lib/copy";
 import MonoLabel from "./ui/MonoLabel";
+import { getRules } from "@/lib/server-rules";
 import { usePendingSettle } from "@/hooks/usePendingSettle";
 
 /**
@@ -252,7 +252,7 @@ export default function HighLow({
         {/* [1] 배율 레일 — 올라간 만큼만 밝다 */}
         <div className="flex flex-row gap-1 desk:flex-col">
           <MonoLabel className="hidden desk:block">{LABEL.mult}</MonoLabel>
-          {Array.from({ length: HL_MAX_STAGE }, (_, i) => {
+          {Array.from({ length: getRules().highlow.max_stage }, (_, i) => {
             const stage = i + 1;
             const done = state.hl_stage >= stage;
             const next = stage === stageForNext;

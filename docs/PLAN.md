@@ -207,16 +207,38 @@ git grep -nE '병동|가축|배급소|밀거래|수감|죄수|교정|무간|흑�
 
 ### P2. DB 재구성 (3\~5일, 가장 큰 단계)
 
-- [ ] `supabase init` 후 `supabase/migrations/`에 날짜순 파일로 옮긴다. 함수 몸통은 한 파일에만 둔다(원본의 규칙을 그대로 유지).
-- [ ] 분해 순서(제안): core(profiles, game\_rounds, ledger, RLS) → play\_game(룰렛·슬롯·하이로우·키노) → 아이템·상점·인벤토리 → 거래 → 1:1 대전·라스트카드 → 관리자 → 아바타(Storage) → 경마(`22`) → 탐험+고양이(`19`, `24`) → 일일 미션(`18`) → 룸 재배치(`13`)·친구 피드(`06`)·피드백(`07`).
-- [ ] 제외: `05`의 밀거래 대부분, `15`·`16` 훔치기, `20` 추석, `12`·`14` 병동 사다리(단순 휴식 쿨다운으로 대체).
-- [ ] 고양이 효과 중 훔치기에 연결된 부분은 7절 제안대로 탐험 드랍 보너스로 대체한다.
-- [ ] 인증: `name_to_email`, `handle_new_user`, `admin_create_player`를 아이디/비밀번호 방식으로 바꾼다.
-- [ ] `00_rules.sql`의 `app.*` 규칙 값을 서버 `get_rules()` RPC 하나로 내려주고, 클라이언트 `game.ts`의 중복 상수를 제거한다.
-- [ ] `supabase/seed.sql`: 말 20두, 아이템 카탈로그, 데모 계정(`demo01`\~).
-- [ ] 경마(`22_horse_race.sql`)의 수치와 함수 시그니처는 바꾸지 않는다. 주석과 문구만 중립화한다.
+- [x] `supabase init` 후 `supabase/migrations/`에 날짜순 파일로 옮긴다. 함수 몸통은 한 파일에만 둔다(원본의 규칙을 그대로 유지).
+- [x] 분해 순서(제안): core(profiles, game\_rounds, ledger, RLS) → play\_game(룰렛·슬롯·하이로우·키노) → 아이템·상점·인벤토리 → 거래 → 1:1 대전·라스트카드 → 관리자 → 아바타(Storage) → 경마(`22`) → 탐험+고양이(`19`, `24`) → 일일 미션(`18`) → 룸 재배치(`13`)·친구 피드(`06`)·피드백(`07`).
+- [x] 제외: `05`의 밀거래 대부분, `15`·`16` 훔치기, `20` 추석, `12`·`14` 병동 사다리(단순 휴식 쿨다운으로 대체).
+- [x] 고양이 효과 중 훔치기에 연결된 부분은 7절 제안대로 탐험 드랍 보너스로 대체한다.
+- [x] 인증: `name_to_email`, `handle_new_user`, `admin_create_player`를 아이디/비밀번호 방식으로 바꾼다.
+- [x] `00_rules.sql`의 `app.*` 규칙 값을 서버 `get_rules()` RPC 하나로 내려주고, 클라이언트 `game.ts`의 중복 상수를 제거한다.
+- [x] `supabase/seed.sql`: 말 20두, 아이템 카탈로그, 데모 계정(`demo01`\~).
+- [x] 경마(`22_horse_race.sql`)의 수치와 함수 시그니처는 바꾸지 않는다. 주석과 문구만 중립화한다.
 
 완료 기준: `supabase start && supabase db reset` 성공. 로컬에서 로그인 → 4게임 1판씩 → 경마 베팅과 정산을 수동으로 확인.
+> P2 결과(2026-11-10)
+>
+> **방법.** 원본 25개 SQL 파일을 운영 순서(APPLY.md)대로 빈 로컬 DB에 적용해 "운영 최종 상태"를 만들고, 그 상태를 `pg_dump`(권한 포함)로 떠서 도메인별 마이그레이션 10개로 나눴다. 파일마다 같은 함수가 여러 번 정의되던 문제(나중에 도는 쪽이 이김)는 덤프가 최종 본문 하나만 남기므로 자동으로 해소됐다. 그 위에 기능 제거 · 이름 변경 · 본문 수정을 적용하고, `db reset` 뒤 `plpgsql_check`(plpgsql 함수)와 `check_function_bodies`(sql 함수)로 **모든 함수를 정적 검사해 오류 0건**을 확인했다. 덤프에 안 나오는 Auth 트리거 · Storage 버킷/정책 · pg_cron 예약은 `*_platform.sql` 로 따로 옮겼다.
+>
+> **결과.** `supabase/migrations/` 12개(core · items · games · trade · arena · social · admin · missions · explore · race · rules · platform) + `supabase/seed.sql`. 원본 번호 파일과 `APPLY.md` 는 저장소에서 지웠다(원본 저장소에 남아 있다).
+> - 제거: 테이블 6개(밀거래 2 · 라스트카드 · 약물 구매 · 추석 뽑기 · 평문 코드 보관 `player_codes`), 함수 156개, profiles 컬럼 17개, item_defs 컬럼 6개, 사다리 트리거.
+> - 휴식: 단계별 사다리(14→48시간)를 고정 14시간(`app.ward_hours()`)으로.
+> - 인증: `username_to_email()` = `아이디@paddock.local`, 아이디는 `^[a-z0-9]{3,20}$`. 초기 비밀번호는 `app.gen_password()` 로 만들어 **발급 응답으로 한 번만** 돌려주고 평문을 저장하지 않는다. 관리자 삭제는 아이디 재입력 확인. 운영자 숨김 계정 이름 `admin`.
+> - 이름 변경: `inmate_roster` → `player_roster`, `profiles.crime` → `status_message`, `cat_steal_boost` → `cat_search_boost`, 고양이 선물 코드 `feather` · `toy_mouse` · `butterfly`.
+> - 장난감 쥐: 다음 탐험 한 번은 등급을 두 번 뽑아 높은 쪽(`app.roll_search(place, p_lucky)`).
+> - 규칙 일원화: 룰렛 · 슬롯 · 키노 배당을 `app.roulette_*` · `app.slot_*` · `app.keno_mult()` 로 뽑아 `play_game` 이 이 함수를 쓰고, `public.get_rules()` 가 같은 값을 화면에 내려준다. 클라이언트의 중복 상수(PLAY_LIMIT · ROULETTE_* · SLOT_* · HL_* · KENO_* · CLOVER_STAKE · CAT_BIRD_* · RACE_PUBLIC)는 지우고 `src/lib/server-rules.ts` 의 `getRules()` 로 읽는다.
+> - 카탈로그: 150 → 106개. adult · drug · event · permit · tobacco · trick 갈래와 해독제를 빼고, 무기처럼 읽히던 공구 7종은 코드째 평범한 공구로, 의약품은 휴식 단축 아이템으로 바꿨다. 탐험 장소별 갈래도 그에 맞췄다(장소마다 일반 등급 후보가 남는 것 확인).
+>
+> **확인한 것** (로컬 스택에 실제 HTTP로): `demo01@paddock.local` 로그인(틀린 비밀번호 400) → 룰렛 · 슬롯 · 키노 · 하이로우 각 1판 → `highlow_continue(null)` 은 `INVALID_CHOICE` → 프로필 저장 · 명단 → 경마 베팅 → 출발 시각을 앞당겨 `race_settle` 두 번 + `race_settle_due` 한 번: 우승 마권(×1.2) 24코인이 **한 번만** 지급. anon 키로 `profiles.coins` 를 직접 PATCH 하면 0행(RLS). `get_rules()` 는 anon 으로도 읽힌다. `npm run build` 통과, `check-theme` 저장소 전체 0건.
+>
+> **아직 안 한 것 · P3 이후로**
+> - 브라우저 화면 확인(로그인 · 각 게임 화면)은 아직이다 — 위 확인은 API 수준이다.
+> - 플레이어 번호 `#0001` 은 여전히 아이디 해시로 계산한다(DB 발급 순번 컬럼은 미도입).
+> - DB 식별자 상당수는 원본 이름을 유지한다: `hp*`(=에너지) · `ward*`(=휴식) · `cell*`(=룸) · `petition*`(=피드백) · 장소 코드(`cell/mess/shower/works/infirm`) · 미션 코드. 콘셉트 단어는 아니라서 남겼고, 용어표를 docs 에 둘 예정.
+> - `relations.kind`(이제 'user' 하나) · `expires_at` 컬럼은 남아 있다.
+> - 하이로우 · 키노 입력 검증 정규식(1~40, 5개)은 `app.keno_range()` 를 쓰지 않고 숫자가 박혀 있다.
+
 
 ### P3. 대형 파일 분할과 규칙 일원화 (2\~3일)
 

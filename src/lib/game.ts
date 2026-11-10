@@ -1,42 +1,42 @@
-// 서버(supabase/00_rules.sql · 02_schema.sql)의 규칙과 짝을 이루는 표시용 상수.
-// 실제 판정과 정산은 전부 DB 함수 play_game() 안에서만 일어난다.
+// 게임 화면에서 쓰는 타입과 표시용 도우미.
+// 실제 판정과 정산은 전부 DB 함수(play_game 등) 안에서만 일어난다.
+// 배당 · 한도 같은 규칙 숫자는 여기에 적지 않는다 — 서버 get_rules() 값을 getRules() 로 읽는다.
 
 import { GEAR } from "./gear";
 import { RADIO } from "./radio";
-
-export const PLAY_LIMIT = 20;
-
-// Casual 게임 1판마다 지급하는 참가 보상. 판돈의 절반이 이보다 적으면 그만큼만 준다.
-// (실제 값은 사람마다 다르다 — 서버 app.play_wage(코인) 이 정하고 state.play_wage 로
-//  내려온다. 0 이면 화면의 참가 보상 안내를 감춘다. 이 값은 표시용 기본치.)
-export const PLAY_WAGE = 4;
+import { getRules } from "./server-rules";
 
 export type GameId = "roulette" | "slots" | "highlow" | "keno";
 
-export const GAMES: { id: GameId; name: string; emoji: string; desc: string }[] = [
-  { id: "roulette", name: "룰렛", emoji: "🎯", desc: "색을 맞히면 2.1배, 초록은 14.7배" },
-  { id: "slots", name: "슬롯머신", emoji: "🎰", desc: "3개 일치 최대 40배" },
-  { id: "highlow", name: "하이로우", emoji: "🃏", desc: "다음 카드가 높을까 낮을까" },
-  { id: "keno", name: "키노", emoji: "🔢", desc: "40개 중 5개를 고르고 10개를 뽑는다" },
-];
+/** 게임 탭 목록. 설명 속 숫자도 서버 규칙에서 만든다. */
+export function gameList(): { id: GameId; name: string; emoji: string; desc: string }[] {
+  const r = getRules();
+  const topSlot = Math.max(...Object.values(r.slots.triple));
+  return [
+    { id: "roulette", name: "룰렛", emoji: "🎯", desc: `색을 맞히면 ${r.roulette.color_mult}배, 초록은 ${r.roulette.number_mult}배` },
+    { id: "slots", name: "슬롯머신", emoji: "🎰", desc: `3개 일치 최대 ${topSlot}배` },
+    { id: "highlow", name: "하이로우", emoji: "🃏", desc: "다음 카드가 높을까 낮을까" },
+    { id: "keno", name: "키노", emoji: "🔢", desc: `${r.keno.range}개 중 ${r.keno.picks}개를 고르고 ${r.keno.draws}개를 뽑는다` },
+  ];
+}
 
 /* ---------------- 룰렛 ---------------- */
-// 0 = 초록, 1~7 = 빨강, 8~14 = 검정 (총 15칸)
-export const ROULETTE_SLOTS = 15;
+// 0 = 초록, 1~7 = 빨강, 8~14 = 검정 (칸 수는 getRules().roulette.slots)
 
 export function rouletteColor(slot: number): "green" | "red" | "black" {
   if (slot === 0) return "green";
   return slot <= 7 ? "red" : "black";
 }
 
-export const ROULETTE_BETS = [
-  { id: "red", label: "빨강", mult: 2.1, className: "bet-red" },
-  { id: "black", label: "검정", mult: 2.1, className: "bet-black" },
-  { id: "green", label: "초록", mult: 14.7, className: "bet-green" },
-] as const;
-
-// 숫자 베팅은 15칸 중 1칸이므로 색 베팅과 하우스 엣지가 같도록 ×14.7 로 맞춘다.
-export const ROULETTE_NUMBER_MULT = 14.7;
+/** 색 베팅 버튼. 배율은 서버 규칙 값이다. */
+export function rouletteBets() {
+  const r = getRules().roulette;
+  return [
+    { id: "red", label: "빨강", mult: r.color_mult, className: "bet-red" },
+    { id: "black", label: "검정", mult: r.color_mult, className: "bet-black" },
+    { id: "green", label: "초록", mult: r.number_mult, className: "bet-green" },
+  ] as const;
+}
 
 export function isNumberBet(choice: string | null): boolean {
   return !!choice && /^([0-9]|1[0-4])$/.test(choice);
@@ -49,43 +49,27 @@ export function rouletteChoiceLabel(choice: string | null): string {
 }
 
 /* ---------------- 슬롯머신 ---------------- */
-export const SLOT_SYMBOLS = {
-  cherry: { emoji: "🍒", mult: 4 },
-  lemon: { emoji: "🍋", mult: 6 },
-  bell: { emoji: "🔔", mult: 8 },
-  star: { emoji: "⭐", mult: 12 },
-  seven: { emoji: "7️⃣", mult: 25 },
-  diamond: { emoji: "💎", mult: 40 },
+/** 릴 그림. 배당(getRules().slots.triple)과 확률(getRules().slots.pool)은 서버 값이다. */
+export const SLOT_EMOJI = {
+  cherry: "🍒",
+  lemon: "🍋",
+  bell: "🔔",
+  star: "⭐",
+  seven: "7️⃣",
+  diamond: "💎",
 } as const;
 
-export type SlotSymbol = keyof typeof SLOT_SYMBOLS;
+export type SlotSymbol = keyof typeof SLOT_EMOJI;
 
-/** 두 칸만 같을 때의 배당. 02_schema.sql 의 play_game 과 반드시 같은 값이어야 한다. */
-export const SLOT_PAIR_MULT = 1.45;
-
-// 릴 애니메이션용 (서버 확률과 동일한 가중치)
-export const SLOT_POOL: SlotSymbol[] = [
-  ...Array<SlotSymbol>(6).fill("cherry"),
-  ...Array<SlotSymbol>(5).fill("lemon"),
-  ...Array<SlotSymbol>(4).fill("bell"),
-  ...Array<SlotSymbol>(3).fill("star"),
-  ...Array<SlotSymbol>(2).fill("seven"),
-  ...Array<SlotSymbol>(1).fill("diamond"),
-];
+/** 세 칸 일치 배당 */
+export function slotTripleMult(symbol: SlotSymbol): number {
+  return getRules().slots.triple[symbol] ?? 0;
+}
 
 /* ---------------- 하이로우 ---------------- */
 export const CARD_LABELS = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 
 export type HighLowChoice = "high" | "low" | "same";
-
-export const HL_MAX_STAGE = 3;
-
-// 카드는 균등 추첨이다(쏠림 없음). 난이도 보정은 확률이 아니라 배율에서 한다 —
-// 단계가 오를수록 엣지를 깎아 "계속 가는 쪽"이 항상 유리하도록.
-// 00_rules.sql 의 app.hl_edge 와 반드시 같은 값이어야 한다.
-export const HL_EDGE = [0.05, 0.0, -0.03] as const;
-// 배율 상한. 00_rules.sql 의 app.hl_max_mult 와 반드시 같아야 한다.
-export const HL_MAX_MULT = 8;
 
 /** 선택이 적중하는 카드 수 (13장 균등 기준) */
 export function hlWinCards(card: number, choice: HighLowChoice): number {
@@ -100,21 +84,20 @@ export function hlWinChance(card: number, choice: HighLowChoice): number {
 }
 
 /** 배율 = (1 - 단계엣지) / 적중률, 소수 2자리 반올림, 상한 적용.
- *  00_rules.sql 의 app.hl_mult 와 반드시 같은 값이어야 한다. */
-export function hlMult(
-  card: number,
-  choice: HighLowChoice,
-  stage: number,
-): number {
+ *  서버 app.hl_mult 와 같은 식이고, 엣지·상한은 get_rules() 값을 쓴다.
+ *  카드는 균등 추첨이다(쏠림 없음). 난이도 보정은 확률이 아니라 배율에서 한다 —
+ *  단계가 오를수록 엣지를 깎아 "계속 가는 쪽"이 유리하도록. */
+export function hlMult(card: number, choice: HighLowChoice, stage: number): number {
+  const { edge: edges, max_mult } = getRules().highlow;
   const winCards = hlWinCards(card, choice);
   if (winCards <= 0) return 0;
-  const edge = HL_EDGE[stage - 1] ?? 1;
+  const edge = edges[stage - 1] ?? 1;
   const raw = ((1 - edge) * 13) / winCards;
   // 부동소수 오차 보정 — 0.95*13/10 은 정확히 1.235지만 JS 이진 부동소수로는
   // 1.2349999... 가 되어 반올림이 아래로 내려간다. Postgres numeric(정확한
   // 십진 연산)과 결과가 어긋나지 않도록 아주 작은 값을 더해 경계를 바로잡는다.
   const rounded = Math.round((raw + Number.EPSILON) * 100) / 100;
-  return Math.min(HL_MAX_MULT, rounded);
+  return Math.min(max_mult, rounded);
 }
 
 /** 다음 단계까지 성공했을 때 적립금이 얼마가 되는지 */
@@ -156,36 +139,19 @@ export const HL_CHOICES: {
   ];
 
 /* ---------------- 키노 ---------------- */
-// 1~40 에서 5개를 고르면 서버가 10개를 뽑는다. 추첨 수 10 도 배당표의 일부다 —
-// 개수를 바꾸면 아래 배당이 전부 어긋난다.
-export const KENO_RANGE = 40;
-export const KENO_PICKS = 5;
-export const KENO_DRAWS = 10;
+// 개수(range · picks · draws)와 배당표(mult)는 getRules().keno 에 있다.
+// 다 맞힌 판 일부를 서버가 다시 뽑는 재추첨 규칙과 RTP 계산은
+// supabase/migrations 의 play_game 주석과 docs 를 본다.
 
-/** 적중 개수별 배당. 02_schema.sql 의 play_game 키노 절과 반드시 같은 값이어야 한다.
- *
- *  다 맞힌 판은 서버가 일부만 남기고 나머지는 판 전체를 다시 뽑는다 — 초기하분포
- *  그대로면 5개 적중이 2,611판에 한 번이라, 슬롯 다이아 트리플(9,261판에 한 번)
- *  보다 최고 배당이 3.5배 흔해지기 때문이다. 4개 적중(자연 1/104)도 같은 식으로
- *  5개 확률의 2배(1/4,630)까지, 3개 적중(자연 1/12.6)은 1/28.5 까지 낮춘다
- *  (2026-10-02, 2026-10-07). 재추첨을 거친 뒤의 확률은
- *    0개 .2294 · 1개 .4411 · 2개 .2941 · 3개 .0351 · 4개 .000216 · 5개 .000108
- *  이다. 빈도를 정하는 건 서버의 app.keno_five_one_in() · app.keno_four_one_in()
- *  · app.keno_three_one_in() 이고 화면에서 다시 계산하지 않는다.
- *
- *  2026-09-28: 확률은 그대로 두고 배당만 올렸다(×1.5/×4/×15/×50 → ×3/×15/×30/×60).
- *  RTP 는 0.883(하우스 엣지 ≈11.7%)에서 약 2.32(하우스 엣지 ≈ −131.7%, 플레이어
- *  유리)로 뛴다 — 다른 게임과 엣지를 맞추지 않은 의도적 결정이다. 1개 적중에는
- *  지금도 배당을 주지 않는다.
- *  같은 날 2개 적중만 ×3 → ×1.5 로 되돌렸다. RTP 약 1.90(하우스 엣지 ≈ −90.1%).
- *  2026-10-02: 4개 적중 빈도를 낮춰 RTP 약 1.635(하우스 엣지 ≈ −63.5%).
- *  2026-10-06: 3개 적중 빈도를 낮춰 RTP 약 1.44(하우스 엣지 ≈ −44.0%).
- *  2026-10-07: 3개 적중을 1/15 → 1/28.5 로 낮춰 RTP 약 0.980(하우스 엣지 ≈ 2.0%,
- *  룰렛·슬롯·하이로우와 같은 급). */
-export const KENO_MULT: Record<number, number> = { 2: 1.5, 3: 15, 4: 30, 5: 60 };
+/** 적중 수별 배당. 1개 이하는 0. */
+export function kenoMult(hits: number): number {
+  return getRules().keno.mult[String(hits)] ?? 0;
+}
 
 /** 배당 레일용 — 높은 것부터 */
-export const KENO_TIERS = [5, 4, 3, 2] as const;
+export function kenoTiers(): number[] {
+  return Object.keys(getRules().keno.mult).map(Number).sort((a, b) => b - a);
+}
 
 export type KenoOutcome = {
   picks: number[];
@@ -229,7 +195,7 @@ export const HP_TIERS: { max: number; status: HpStatus; className: string }[] = 
   { max: 100, status: "충분", className: "text-emerald-400" },
 ];
 
-/** 00_rules.sql 의 app.hp_status 와 같은 구간을 쓴다 */
+/** 서버 app.hp_status 와 같은 구간을 쓴다 */
 export function hpStatus(hp: number): HpStatus {
   return (HP_TIERS.find((t) => hp <= t.max) ?? HP_TIERS[4]).status;
 }
@@ -299,7 +265,7 @@ export type ItemDef = {
 };
 
 /** 본인에게만 보이는 프로필 표시 한 줄. state.flex 가 이 배열을 들고 있다.
- *  남은 시간(expires_at)은 여기에만 있다 — inmate_roster() 는 문장만 준다. */
+ *  남은 시간(expires_at)은 여기에만 있다 — player_roster() 는 문장만 준다. */
 export type FlexStatus = {
   code: string;
   name: string;
@@ -355,7 +321,6 @@ export const ITEM_KIND_LABEL: Record<string, string> = {
    상점 전용. 쓰면 flex_hours(6시간) 동안 모든 판의 판돈에 서버가 코인을 얹는다.
    값은 서버의 "판돈 추가(stake_bonus)" 표가 정한다 — 여기는 표시용이다. */
 export const CLOVER = "clover";
-export const CLOVER_STAKE = 15;
 
 /** state.luck — 네잎클로버가 켜져 있을 때만 값이 있다 */
 export type LuckEffect = {
@@ -415,7 +380,7 @@ export function itemEffect(it: Effectish): string {
   if (it.code === RADIO) return "켜면 노래가 나온다";
   if (it.code === CHURU) return "고양이 간식";
   if (it.kind === "gift") return "고양이의 선물";
-  if (it.kind === "charm") return `판돈 +${CLOVER_STAKE} · ${it.flex_hours ?? 6}시간`;
+  if (it.kind === "charm") return `판돈 +${getRules().clover_stake} · ${it.flex_hours ?? 6}시간`;
   const parts: string[] = [];
   if (it.heal > 0) parts.push(`에너지 +${it.heal}`);
   if (it.plays > 0) parts.push(`게임 횟수 +${it.plays}`);
@@ -540,7 +505,7 @@ export type SearchBoard = {
   bless_left?: number;
 };
 
-/** cat_test() 동작. 서버 24_cat.sql 의 public.cat_test 와 같다. */
+/** cat_test() 동작. 서버 public.cat_test 와 같다. */
 export type CatTestAction = "here" | "churu" | "fish" | "friend" | "gifts_now" | "deads" | "reset";
 
 /** search_look() 한 번의 결과. */
@@ -573,11 +538,8 @@ export const CAT_FISH_CODES = new Set(["fish_mackerel", "fish_horse_mackerel", "
 
 /** 선물로 오는 세 품목(app.cat_gift_items). 거래가 안 되고 몰래 정리로 치운다.
  *  쓰면(public.cat_gift_use) 품목마다 효과가 하나 켜진다 — 설명은 사용 팝업에만. */
-// 코드값은 서버 카탈로그와 묶여 있어 P2에서 feather · toy_mouse · butterfly 로 함께 바꾼다.
-export const CAT_GIFT_CODES = new Set(["dead_bird", "dead_mouse", "dead_bug"]);
-/** 선물 효과(표시용). 서버 app.cat_bird_stake · app.cat_bird_plays 와 같다. */
-export const CAT_BIRD_STAKE = 10;
-export const CAT_BIRD_PLAYS = 3;
+// 코드값은 서버 카탈로그(seed.sql)와 같다.
+export const CAT_GIFT_CODES = new Set(["feather", "toy_mouse", "butterfly"]);
 
 /** 소지품 탭이 cat_gifts_pending() 으로 받는 값 */
 export type CatStatus = {
@@ -586,6 +548,8 @@ export type CatStatus = {
   gifts: CatGift[];
   /** 깃털이 판돈을 얹어 줄 남은 판 수 */
   bless_left: number;
+  /** 장난감 쥐 — 다음 탐험을 기다리는 중 */
+  search_ready: boolean;
   /** 나비 — 다음 미션을 기다리는 중 */
   labor_ready: boolean;
 };
@@ -692,7 +656,7 @@ export type PlayerState = {
   /** "4-08". 아직 배정 전이면 null */
   cell: string | null;
   /** 본인이 직접 기재. 미기재면 null */
-  crime: string | null;
+  status_message: string | null;
   age: number | null;
   height_cm: number | null;
   weight_kg: number | null;
@@ -705,7 +669,6 @@ export type PlayerState = {
 /** 관리자 페이지에서 보는 플레이어 한 줄 */
 export type AdminPlayer = {
   username: string;
-  code: string;
   coins: number;
   hp: number;
   hp_status: HpStatus;
@@ -1043,7 +1006,7 @@ export type PvpState = {
 
 
 export type PlayResult = Omit<PlayerState, "extra_plays" | "extra_max" | "extra_left"> & {
-  // 서버 패치(patch_extra_plays.sql)보다 클라이언트가 먼저 배포될 수 있으니
+  // 서버 응답에 이 키가 빠져 있어도 동작하도록
   // 옵셔널로 두고, 없으면 toPlayerState 에서 bonus 값으로 대체한다.
   extra_plays?: number;
   extra_max?: number;
@@ -1105,7 +1068,7 @@ export function toPlayerState(r: PlayResult): PlayerState {
     suspend_reason: r.suspend_reason,
     cell_id: r.cell_id,
     cell: r.cell,
-    crime: r.crime,
+    status_message: r.status_message,
     age: r.age,
     height_cm: r.height_cm,
     weight_kg: r.weight_kg,
@@ -1172,15 +1135,17 @@ export const ERROR_MESSAGES: Record<string, string> = {
   NO_PENDING_ACE: "지금 정할 에이스가 없습니다.",
   NO_MATCH: "대전을 찾을 수 없습니다.",
   NOT_ADMIN: "관리자만 사용할 수 있는 기능입니다.",
-  NAME_TAKEN: "이미 있는 이름입니다.",
-  INVALID_NAME: "이름을 입력해 주세요.",
+  NAME_TAKEN: "이미 있는 아이디입니다.",
+  INVALID_NAME: "아이디는 영문 소문자와 숫자 3~20자입니다.",
+  INVALID_PASSWORD: "비밀번호는 6자 이상이어야 합니다.",
+  NAME_CONFIRM_MISMATCH: "확인용 아이디가 일치하지 않습니다.",
   SUSPENDED: "정지된 계정이라 할 수 없습니다.",
   OPPONENT_SUSPENDED: "상대가 정지 상태입니다.",
   INVALID_DAYS: "정지 일수가 올바르지 않습니다.",
   CANNOT_SUSPEND_SELF: "자기 계정은 정지할 수 없습니다.",
   PETITION_NOT_CLOSED: "종료된 피드백만 삭제할 수 있습니다.",
   INVALID_AMOUNT: "지급할 코인 수가 올바르지 않습니다.",
-  NO_SUCH_PLAYER: "그런 이름의 플레이어가 없습니다.",
+  NO_SUCH_PLAYER: "그런 아이디의 플레이어가 없습니다.",
   ALREADY_BLACK: "이미 블랙 회원입니다.",
   LOAN_PENDING: "이미 심사 중인 대출 신청이 있습니다.",
   INVALID_LOAN_AMOUNT: "신청할 수 있는 금액이 아닙니다.",
@@ -1211,7 +1176,6 @@ export const ERROR_MESSAGES: Record<string, string> = {
   NO_PETITION: "해당 피드백을 찾을 수 없습니다.",
   PETITION_CLOSED: "이미 종료된 피드백입니다.",
   INVALID_DETAIL: "기재할 수 없는 값입니다.",
-  NAME_CODE_MISMATCH: "아이디 또는 비밀번호가 맞지 않습니다.",
   CANNOT_DELETE_SELF: "자기 계정은 지울 수 없습니다.",
   LABOR_DONE: "오늘 미션을 모두 끝냈습니다.",
   LABOR_CLOSED: "지금은 미션 시간이 아닙니다.",

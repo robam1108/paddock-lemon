@@ -3,16 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { usePendingSettle } from "@/hooks/usePendingSettle";
 import {
-  KENO_DRAWS,
-  KENO_MULT,
-  KENO_PICKS,
-  KENO_RANGE,
-  KENO_TIERS,
+  kenoMult,
+  kenoTiers,
   type KenoOutcome,
   type PlayResult,
 } from "@/lib/game";
 import { KENO_DRAWING_NOTE, LABEL, kenoMatchLine, kenoPickPrompt } from "@/lib/copy";
 import MonoLabel from "./ui/MonoLabel";
+import { getRules } from "@/lib/server-rules";
 
 /**
  * 키노 — 벽에 걸린 번호판이다. 서버가 매 회차 열 개를 뽑아 불을 켜고,
@@ -28,7 +26,7 @@ const STEP = 170; // 숫자 하나 사이의 간격
 const TAIL = 250; // 마지막 숫자가 앉고 정산까지
 
 function drawAll(): number[] {
-  return Array.from({ length: KENO_RANGE }, (_, i) => i + 1);
+  return Array.from({ length: getRules().keno.range }, (_, i) => i + 1);
 }
 
 /** 1~40 에서 서로 다른 다섯을 뽑는다(무작위 버튼). */
@@ -38,7 +36,7 @@ function randomPicks(): number[] {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  return pool.slice(0, KENO_PICKS).sort((a, b) => a - b);
+  return pool.slice(0, getRules().keno.picks).sort((a, b) => a - b);
 }
 
 /**
@@ -106,13 +104,13 @@ export default function Keno({
     setPicks((prev) => {
       if (prev.includes(n)) return prev.filter((x) => x !== n);
       // 다 찼으면 조용히 바꿔치지 않는다 — 몇 개 골랐는지 읽을 수 없게 된다.
-      if (prev.length >= KENO_PICKS) return prev;
+      if (prev.length >= getRules().keno.picks) return prev;
       return [...prev, n].sort((a, b) => a - b);
     });
   }
 
   async function press() {
-    if (locked || picks.length !== KENO_PICKS) return;
+    if (locked || picks.length !== getRules().keno.picks) return;
 
     const result = await onPlay("keno", picks.join(","));
     if (!result) return;
@@ -145,7 +143,7 @@ export default function Keno({
     timeouts.current.push(finish);
   }
 
-  const left = KENO_PICKS - picks.length;
+  const left = getRules().keno.picks - picks.length;
   const buttonLabel = drawing
     ? KENO_DRAWING_NOTE
     : left > 0
@@ -159,7 +157,7 @@ export default function Keno({
         {/* [1] 배당 레일 — 높은 것부터 */}
         <div className="grid grid-cols-2 gap-1 tab:grid-cols-4 desk:grid-cols-1">
           <MonoLabel className="hidden desk:block">{LABEL.mult}</MonoLabel>
-          {KENO_TIERS.map((k) => (
+          {kenoTiers().map((k) => (
             <div
               key={k}
               className={`state-fade flex min-h-9 flex-1 items-center justify-between gap-1 px-2 ${
@@ -169,7 +167,7 @@ export default function Keno({
               }`}
             >
               <span className="mono-13 text-fg-mid tabular-nums">{k}개</span>
-              <span className="mono-13 text-fg tabular-nums">×{KENO_MULT[k]}</span>
+              <span className="mono-13 text-fg tabular-nums">×{kenoMult(k)}</span>
             </div>
           ))}
         </div>
@@ -178,7 +176,7 @@ export default function Keno({
         <div className="flex min-h-0 flex-col justify-center gap-2.5 desk:min-h-[340px]">
           <div className="flex items-center justify-between gap-2">
             <MonoLabel>
-              고른 수 {picks.length}/{KENO_PICKS}
+              고른 수 {picks.length}/{getRules().keno.picks}
             </MonoLabel>
             <div className="flex gap-1">
               <button
@@ -207,7 +205,7 @@ export default function Keno({
           </div>
 
           <div className="grid grid-cols-8 gap-1 tab:grid-cols-10">
-            {Array.from({ length: KENO_RANGE }, (_, i) => i + 1).map((n) => {
+            {Array.from({ length: getRules().keno.range }, (_, i) => i + 1).map((n) => {
               const picked = picks.includes(n);
               const drawn = shownSet.has(n);
               return (
@@ -278,17 +276,17 @@ export default function Keno({
           <div className="border-brass-line flex flex-col gap-1 border bg-brass-fill p-3">
             <MonoLabel>최대 배당</MonoLabel>
             <span className="num-md text-fg-hi tabular-nums">
-              ×{KENO_MULT[KENO_PICKS]}
+              ×{kenoMult(getRules().keno.picks)}
             </span>
           </div>
           <div className="bg-surface col-span-2 hidden flex-1 flex-col justify-end gap-1.5 p-3 desk:flex">
             <span className="body-15 text-fg-mid">
               {done
                 ? kenoMatchLine(hitCount)
-                : `다섯 개를 고르면 서버가 ${KENO_DRAWS}개를 뽑습니다.`}
+                : `다섯 개를 고르면 서버가 ${getRules().keno.draws}개를 뽑습니다.`}
             </span>
             <span className="body-15 text-fg">
-              둘만 겹쳐도 {KENO_MULT[2]}배다. 다섯은 아무도 못 봤다.
+              둘만 겹쳐도 {kenoMult(2)}배다. 다섯은 아무도 못 봤다.
             </span>
           </div>
         </div>
