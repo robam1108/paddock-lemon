@@ -37,15 +37,15 @@ test("시연 자료", async ({ page }) => {
   await page.getByRole("button", { name: "로그인", exact: true }).click();
   await expect(page).toHaveURL(/\/play/);
 
-  // 2. Casual 룰렛 한 판
-  await page.getByRole("button", { name: "Casual", exact: true }).click();
+  // 2. 캐주얼 룰렛 한 판
+  await page.getByRole("button", { name: "캐주얼", exact: true }).click();
   await page.getByRole("button", { name: /^빨강에 \d+ 코인/ }).click();
   await expect(page.getByText(/코인 손실|코인 수령|본전/)).toBeVisible({ timeout: 15_000 });
   await top();
   await page.screenshot({ path: `${OUT}/casual-roulette.png` });
 
   // 3. 경마장 출전표 · 배당
-  await page.getByRole("button", { name: "Arena", exact: true }).click();
+  await page.getByRole("button", { name: "아레나", exact: true }).click();
   await page.getByRole("button", { name: "경마장", exact: true }).click();
   const firstHorse = page.locator('[role="button"][aria-pressed]').first();
   await firstHorse.click();

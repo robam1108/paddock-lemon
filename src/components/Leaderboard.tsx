@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { identityOf } from "@/lib/identity";
 import { LABEL } from "@/lib/copy";
 import SidePanel from "./ui/SidePanel";
 import { usePageVisible } from "@/hooks/usePageVisible";
@@ -69,7 +68,6 @@ export default function Leaderboard({
               </span>
               <span
                 className={`truncate ${me ? "text-fg-hi" : "text-fg"}`}
-                title={`플레이어 ${identityOf(r.username).no}`}
               >
                 {r.username}
               </span>

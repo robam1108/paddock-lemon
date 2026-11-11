@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   // --bg-0 과 같은 색. 브라우저 크롬까지 화면 바닥색으로 이어 붙인다.
-  themeColor: "#1b2124",
+  themeColor: "#f7f2e6",
   width: "device-width",
   initialScale: 1,
 };

@@ -9,7 +9,6 @@ import {
   type SlotSymbol,
   slotTripleMult,
 } from "@/lib/game";
-import { SEARCH_PLACES } from "@/lib/labor";
 import { VERDICT } from "@/lib/copy";
 
 export type RelationEntry = {
@@ -52,8 +51,6 @@ export type RosterEntry = {
   hp: number;
   hp_max: number;
   in_ward: boolean;
-  cell_id: number | null;
-  cell: string | null;
   status_message: string | null;
   age: number | null;
   height_cm: number | null;
@@ -92,14 +89,6 @@ export function gameTitle(title: string): string {
   return title === "하이로우 사다리" ? "하이로우" : title;
 }
 
-/** 기록 목록 둘째 줄 — 미션은 보상 한 줄, 탐험은 장소 한 줄. */
-export function laborLine(detail: Record<string, unknown>): string | null {
-  const band = detail?.band as string | undefined;
-  const bandLabel =
-    band === "low" ? "적게" : band === "high" ? "많이" : band === "mid" ? "보통으로" : null;
-  return bandLabel ? `보상을 ${bandLabel} 받았습니다` : null;
-}
-
 /**
  * 관리자가 주거나 거둔 줄의 둘째 줄 — "[이벤트] 주말 보너스".
  * 분류도 메모도 없으면(SQL Editor 에서 사유 없이 부른 경우) 아무것도 적지 않는다.
@@ -110,17 +99,6 @@ export function adminLine(detail: Record<string, unknown>): string | null {
   const tag = category ? `[${ADMIN_REASON_LABEL[category] ?? category}]` : null;
   if (tag && note) return `${tag} ${note}`;
   return tag ?? note ?? null;
-}
-
-export function searchLine(detail: Record<string, unknown>): string | null {
-  const place = detail?.place as string | undefined;
-  const ration = detail?.ration as boolean | undefined;
-  const miss = detail?.miss as boolean | undefined;
-  const placeLabel = place ? (SEARCH_PLACES.find((p) => p.id === place)?.label ?? place) : null;
-  if (!placeLabel) return null;
-  if (detail?.cat) return `${placeLabel}에서 고양이를 만났습니다`;
-  if (miss) return `${placeLabel} 탐험 · 빈손`;
-  return ration ? `${placeLabel}에서 간식을 찾았습니다` : `${placeLabel} 탐험`;
 }
 
 /**

@@ -5,8 +5,6 @@ import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Presence } from "@/hooks/usePresence";
 import type { PlayerState } from "@/lib/game";
-import { identityOf } from "@/lib/identity";
-import type { Room } from "@/lib/rooms";
 import { useAdminPending } from "@/hooks/useAdminPending";
 import { usePetitionPending } from "@/hooks/usePetitionPending";
 import { LABEL } from "@/lib/copy";
@@ -52,8 +50,6 @@ export default function TerminalHeader({
   state,
   online,
   supabase,
-  rooms,
-  roomsLoading,
   onExit,
   petitionsOpen,
   onPetitionsOpenChange,
@@ -61,10 +57,6 @@ export default function TerminalHeader({
   state: PlayerState;
   online: Presence[];
   supabase: SupabaseClient;
-  /** 안내문의 방 배치도가 그대로 받아 쓴다 */
-  rooms: Room[];
-  /** 아직 명단을 못 읽었으면 true. 룸에 배정된 사람이 0명인 것과 구분하기 위함. */
-  roomsLoading: boolean;
   onExit: () => void;
   /** 정지 통보 팝업이 "문의하기"로 피드백을 직접 열 수 있도록 상위(Casino)가 들고 있다 */
   petitionsOpen: boolean;
@@ -73,7 +65,6 @@ export default function TerminalHeader({
   const clock = useSessionClock();
   const [rosterOpen, setRosterOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  const me = identityOf(state.username);
   const { pending: adminPending } = useAdminPending(supabase, state.is_admin);
   const { pending: petitionPending, setPending: setPetitionPending } =
     usePetitionPending(supabase, !state.is_admin);
@@ -116,7 +107,6 @@ export default function TerminalHeader({
           <MonoLabel>{LABEL.roster}</MonoLabel>
           {online.map((p) => {
             const mine = p.username === state.username;
-            const id = identityOf(p.username);
             return (
               <span
                 key={p.username}
@@ -126,7 +116,7 @@ export default function TerminalHeader({
                     : "bg-surface text-fg-mid"
                 }`}
               >
-                {id.no} {p.username}
+                {p.username}
                 {mine && " (나)"}
               </span>
             );
@@ -136,22 +126,11 @@ export default function TerminalHeader({
 
       {/* ── 상태 행 84px ── */}
       <div className="flex flex-col items-stretch gap-y-3 px-3.5 py-3 desk:min-h-21 desk:flex-row desk:flex-nowrap desk:gap-x-0 desk:py-0">
-        {/* 플레이어 */}
-        <div className="flex items-center gap-3 desk:pr-5">
-          <div className="border-line flex w-[88px] shrink-0 flex-col items-center justify-center gap-1 border bg-surface py-2">
-            <MonoLabel tone="low">{LABEL.no}</MonoLabel>
-            <span className="num-md text-fg-hi tabular-nums">{me.no}</span>
-          </div>
-          <div className="min-w-0">
-            <MonoLabel tone="low">
-              룸 {state.cell ?? "-"}
-            </MonoLabel>
-            {/* 상태 메시지는 프로필 카드에만 적는다.
-                헤더는 숫자만 둔다. */}
-            <span className="title-19 text-fg-hi mt-1 block truncate">
-              {state.username}
-            </span>
-          </div>
+        {/* 플레이어 — 아이디만 적는다. 상태 메시지는 프로필 카드에만 있다. */}
+        <div className="flex min-w-0 items-center desk:pr-5">
+          <span className="title-19 text-fg-hi block truncate">
+            {state.username}
+          </span>
         </div>
 
         <Divider />
@@ -229,12 +208,7 @@ export default function TerminalHeader({
       </div>
 
       {guideOpen && (
-        <GuidePopup
-          rooms={rooms}
-          roomsLoading={roomsLoading}
-          username={state.username}
-          onClose={() => setGuideOpen(false)}
-        />
+        <GuidePopup onClose={() => setGuideOpen(false)} />
       )}
 
       {petitionsOpen && (

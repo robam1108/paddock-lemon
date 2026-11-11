@@ -1,7 +1,6 @@
 "use client";
 
 import { PVP_GAMES, type PvpInvite } from "@/lib/game";
-import { identityOf } from "@/lib/identity";
 import { useCountdown } from "@/hooks/useCountdown";
 import MonoLabel from "./ui/MonoLabel";
 
@@ -33,7 +32,7 @@ export default function InvitePopup({
         </div>
         <div className="flex flex-col gap-1 p-4">
           <p className="title-19 text-fg-hi">
-            {identityOf(invite.from).no} {invite.from}
+            {invite.from}
           </p>
           <p className="body-15 text-fg-mid">
             <span className="text-fg-hi font-bold">{gameName}</span>에 판돈{" "}

@@ -1,14 +1,11 @@
 "use client";
 
 import {
-  CAT_GIFT_CODES,
   isUsable,
   ITEM_GRADE_LABEL,
   ITEM_KIND_LABEL,
   itemAction,
   itemEffect,
-  MILK,
-  ROAST_TO,
 } from "@/lib/game";
 import { INSTRUMENTS } from "@/lib/gear";
 import ItemMark from "../ui/ItemMark";
@@ -16,23 +13,18 @@ import MonoLabel from "../ui/MonoLabel";
 import { action } from "./shared";
 import type { RecordModel } from "./useRecordModel";
 
-/** 소지품 탭 — 쓰기 · 장착 · 굽기 · 섞기 · 판매, 고양이 선물. */
+/** 소지품 탭 — 쓰기 · 장착 · 판매. */
 export default function ItemsTab({ m }: { m: RecordModel }) {
   const {
     busy,
     equippedCount,
     gearOn,
     items,
-    lighterHeld,
-    mixDrinks,
-    onMix,
-    onRoast,
     onUnequip,
     onUse,
     setConfirm,
     state,
     tab,
-    tossCatGift,
   } = m;
   return (
     <>
@@ -41,7 +33,7 @@ export default function ItemsTab({ m }: { m: RecordModel }) {
         <section className="bg-bg-1 flex flex-col gap-2 p-4">
           <p className="body-15 text-fg-mid">
             판매하면 상점이 정해진 값에 되사 갑니다.
-            다른 플레이어와 주고받으려면 상점·거래의 개인 거래를 이용하세요.
+            다른 플레이어와 주고받으려면 개인거래를 이용하세요.
           </p>
 
           {items.length === 0 ? (
@@ -148,48 +140,6 @@ export default function ItemsTab({ m }: { m: RecordModel }) {
                                 : "사용"}
                         </button>
                       )
-                    )}
-                    {CAT_GIFT_CODES.has(it.code) && it.qty > 0 && (
-                      <>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => setConfirm({ kind: "cat-use", code: it.code, name: it.name })}
-                          className={`${action} flex-1`}
-                        >
-                          사용
-                        </button>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => tossCatGift(it.code, it.name)}
-                          className={`${action} flex-1`}
-                        >
-                          몰래 정리
-                        </button>
-                      </>
-                    )}
-                    {ROAST_TO[it.code] && lighterHeld && it.qty > 0 && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => onRoast(it.code)}
-                        className={`${action} flex-1`}
-                      >
-                        굽기
-                      </button>
-                    )}
-                    {it.code === MILK && it.qty > 0 && mixDrinks.length > 0 && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() =>
-                          mixDrinks.length === 1 ? onMix(mixDrinks[0].code) : setConfirm({ kind: "mix" })
-                        }
-                        className={`${action} flex-1`}
-                      >
-                        섞기
-                      </button>
                     )}
                     {it.sell_price !== null && it.qty > 0 && (
                       <>

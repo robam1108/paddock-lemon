@@ -28,7 +28,7 @@ type Round = {
   created_at: string;
 };
 
-/** Arena 대전은 3판 2승제라 최종 승수로 보여준다. */
+/** 아레나 대전은 3판 2승제라 최종 승수로 보여준다. */
 function describePvp(r: Round): string {
   const side = r.outcome.side as string;
   const pick = (host: string, guest: string) =>

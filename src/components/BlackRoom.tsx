@@ -8,7 +8,6 @@ import {
   type PvpGame,
   type PvpState,
 } from "@/lib/game";
-import { identityOf } from "@/lib/identity";
 import { Countdown } from "@/hooks/useCountdown";
 import BetControl from "./BetControl";
 import MatchView from "./MatchView";
@@ -16,13 +15,13 @@ import TabRail from "./ui/TabRail";
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * Arena — 1:1 대전.
+ * 아레나 — 1:1 대전.
  * 
  * 배경이 온난 쪽(hue 20)으로 넘어가고 표면 밝기가 전체적으로 한 단 내려간다.
  * 여기서는 확률도 분포도 알려주지 않는다 — 어두운 건 정보를 덜 준다는 뜻이다.
  * 걸린 판돈과 남은 시간만 보인다.
  *
- * Casual 과 같은 골격을 쓴다: 게임 선택 → 판 → 조작 → 규칙.
+ * 캐주얼 과 같은 골격을 쓴다: 게임 선택 → 판 → 조작 → 규칙.
  */
 export default function BlackRoom({
   state,
@@ -125,7 +124,7 @@ export default function BlackRoom({
             >
               <div className="flex flex-wrap items-baseline gap-x-2">
                 <span className="title-19 text-fg-hi">
-                  {identityOf(inv.from).no} {inv.from}
+                  {inv.from}
                 </span>
                 <span className="mono-13 text-fg-mid">
                   {PVP_GAMES.find((g) => g.id === inv.game)?.name} · 판돈{" "}
@@ -210,7 +209,7 @@ export default function BlackRoom({
                         : "border-line bg-surface text-fg-mid"
                     }`}
                   >
-                    {identityOf(c.username).no} {c.username}
+                    {c.username}
                   </button>
                 ))}
               </div>

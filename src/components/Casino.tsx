@@ -16,7 +16,6 @@ import { blockedState } from "@/lib/copy";
 import { useItemActions } from "@/hooks/useItemActions";
 import { usePlayActions } from "@/hooks/usePlayActions";
 import { usePresence } from "@/hooks/usePresence";
-import { useRooms } from "@/hooks/useRooms";
 import { usePvp } from "@/hooks/usePvp";
 import CollapsePopup from "./CollapsePopup";
 import SuspendPopup from "./SuspendPopup";
@@ -27,15 +26,13 @@ import UseWarning from "./UseWarning";
 import SharePopup from "./SharePopup";
 import LiveFeed from "./LiveFeed";
 import Leaderboard from "./Leaderboard";
-import RulesPanel from "./RulesPanel";
 import TerminalHeader from "./TerminalHeader";
 import BetControl from "./BetControl";
 import BlackRoom from "./BlackRoom";
 import RaceHall from "./race/RaceHall";
 import Record from "./Record";
-import Labor from "./Labor";
-import Search from "./Search";
-import Exchange from "./Exchange";
+import Shop from "./Shop";
+import PrivateTrade from "./Trade";
 import CasualTab from "./casino/CasualTab";
 import GuestNote from "./casino/GuestNote";
 import TabRail from "./ui/TabRail";
@@ -46,18 +43,17 @@ import { canSeeRace } from "@/lib/race";
 /**
  * 플레이 화면 본체.
  *
- * 차분한 어두운 톤 위에 배율과 적립금만 놋쇠색으로 띄운다.
+ * 밝은 아이보리 라운지 톤 위에 배율과 적립금만 골드로 띄운다.
  * 구역마다 data-zone 이 바뀌면서 같은 유틸리티가 다른 색을 집는다.
  */
 
-/** 구역별 톤. Casual 이 기준이라 별도 값이 없다. */
+/** 구역별 톤(globals.css 의 [data-zone]). */
 const ZONE: Record<Section, string | undefined> = {
   RECORD: "record",
-  LABOR: "labor",
-  SEARCH: "search",
-  WHITE: undefined,
+  WHITE: "casual",
   BLACK: "black",
-  EXCHANGE: "exchange",
+  SHOP: "exchange",
+  TRADE: "exchange",
 };
 
 export default function Casino({
@@ -85,16 +81,14 @@ export default function Casino({
     state.hp_status,
     state.hidden,
   );
-  // 룸 배치(안내)용. DB(cell_id) 기준으로 묶은 목록이라 내 룸(state.cell)과 항상 일치한다.
-  const {
-    rooms,
-    mates,
-    reload: reloadRoster,
-    loading: roomsLoading,
-  } = useRooms(supabase);
+  // 함께 쓰기 상대 후보 — 지금 접속해 있는 다른 플레이어.
+  const mates = useMemo(
+    () => online.map((p) => p.username).filter((n) => n !== state.username),
+    [online, state.username],
+  );
   const [section, setSection] = useState<Section>("RECORD");
   const [game, setGame] = useState<GameId>("roulette");
-  // Arena 안의 판 — 1:1 대전 · 경마장
+  // 아레나 안의 판 — 1:1 대전 · 경마장
   const [blackTab, setBlackTab] = useState<"pvp" | "race">("pvp");
   // 경마장은 공개 스위치(get_rules().race.public)가 꺼져 있으면 운영자 계정에게만 보인다.
   const raceVisible = canSeeRace(state);
@@ -119,7 +113,7 @@ export default function Casino({
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // 대전 상태는 어느 화면에 있든 계속 확인한다. Arena 나 진행 중인
+  // 대전 상태는 어느 화면에 있든 계속 확인한다. 아레나 나 진행 중인
   // 대전이 있을 때만 빠르게 확인해서 불필요한 요청을 줄인다.
   //
   // 네 번째 인자(busy)로 판이 도는 동안은 플레이어 상태 반영을 막는다.
@@ -136,7 +130,7 @@ export default function Casino({
   // 게임으로 0이 된 경우는 서버가 곧바로 휴식으로 보내므로 여기 걸리지 않는다.
   const collapsed = state.hp <= 0 && !state.in_ward;
 
-  // 지금 손이 비어 있고 Arena 가 아닐 때만 초대 팝업을 띄운다.
+  // 지금 손이 비어 있고 아레나 가 아닐 때만 초대 팝업을 띄운다.
   const popupInvite =
     section !== "BLACK" && !busy && !pvpBusy && !collapsed
       ? (pvp?.invites[0] ?? null)
@@ -155,12 +149,11 @@ export default function Casino({
 
   // 하이로우 판이 열려 있는 동안(0단계 포함)은 코인도 횟수도 더 쓰지 않으므로 막지 않는다.
   const ladderRunning = state.hl_bet > 0 && game === "highlow";
-  // Arena 는 플레이 횟수를 쓰지 않는다 — 오늘 몫이 다 떨어져도 판은 열려 있다.
+  // 아레나 는 플레이 횟수를 쓰지 않는다 — 오늘 몫이 다 떨어져도 판은 열려 있다.
   // 정지·휴식·코인 없음은 여기서도 그대로 막는다.
   const blocked = ladderRunning
     ? null
     : blockedState(state, outOfPlays && section !== "BLACK", brokeToday);
-
 
   const { onPlay, onStartHighLow, onContinue, onCashout, onSettle } = usePlayActions({
     supabase,
@@ -252,15 +245,12 @@ export default function Casino({
     doUseItem,
     doUseTogether,
     doUnequip,
-    doRoast,
-    doMix,
     applyItem,
     onUseItem,
     onSellItem,
     onBuyItem,
     onAvatarChange,
-  } = useItemActions({ state, stateRef, callStoreRpc, reloadRoster, setNotice });
-
+  } = useItemActions({ state, stateRef, callStoreRpc, setNotice });
 
   // 휴식 중이어도 휴식을 줄이는 아이템이 있으면 스스로 풀 수 있다. 가진 것만, 있는
   // 만큼만 안내 줄에 버튼으로 떠서 그 자리에서 바로 쓴다.
@@ -273,7 +263,6 @@ export default function Casino({
   const blockedRow = blocked ? (
     <BlockedRow blocked={blocked} actions={wardActions} disabled={busy} />
   ) : null;
-
 
   /**
    * 상태 메시지·나이·키/체중·소개를 프로필에 반영한다.
@@ -329,7 +318,7 @@ export default function Casino({
     <div
       data-zone={ZONE[section]}
       // 판에 앉을 수 없을 때는 배너 대신 화면 전체를 한 톤 죽인다.
-      // 판이 실제로 있는 Casual·Arena 에서만 죽이고, 프로필·상점은 그대로 둔다.
+      // 판이 실제로 있는 캐주얼·아레나 에서만 죽이고, 프로필·상점은 그대로 둔다.
       style={
         blocked && (section === "WHITE" || section === "BLACK")
           ? { filter: "saturate(.35) brightness(.82)" }
@@ -357,7 +346,7 @@ export default function Casino({
         {pendingShare && (
           <SharePopup
             item={pendingShare}
-            mates={mates.filter((m) => m !== state.username)}
+            mates={mates}
             busy={busy}
             onAlone={() => {
               const code = pendingShare.code;
@@ -391,7 +380,7 @@ export default function Casino({
 
         {/* 어느 화면에 있든 초대를 놓치지 않는다.
             다만 게임이 돌아가는 중에는 끼어들지 않고, 끝난 뒤에 뜬다.
-            Arena 에서는 목록에 이미 보이므로 팝업을 띄우지 않는다. */}
+            아레나 에서는 목록에 이미 보이므로 팝업을 띄우지 않는다. */}
         {popupInvite && (
           <InvitePopup
             invite={popupInvite}
@@ -411,7 +400,6 @@ export default function Casino({
             }
           />
         )}
-
 
         {radioOpen && (
           <RadioPopup
@@ -435,14 +423,12 @@ export default function Casino({
           state={state}
           online={online}
           supabase={supabase}
-          rooms={rooms}
-          roomsLoading={roomsLoading}
           onExit={signOut}
           petitionsOpen={petitionsOpen}
           onPetitionsOpenChange={setPetitionsOpen}
         />
 
-        {/* 구역 탭 — 여섯 개가 한 줄. 375 에서만 3×2 로 접는다. */}
+        {/* 구역 탭 — 다섯 개가 한 줄. 좁은 화면에서는 3+2 로 접는다. */}
         <TabRail
           items={SECTIONS}
           value={section}
@@ -453,7 +439,7 @@ export default function Casino({
             setLast(null);
           }}
           disabled={busy}
-          columns="grid-cols-3 tab:grid-cols-6"
+          columns="grid-cols-3 tab:grid-cols-5"
         />
 
         <div className="grid items-start gap-3 desk:grid-cols-[minmax(0,1fr)_320px]">
@@ -479,29 +465,9 @@ export default function Casino({
                 onUse={onUseItem}
                 onSell={onSellItem}
                 onUnequip={doUnequip}
-                onRoast={doRoast}
-                onMix={doMix}
                 onRefresh={refreshState}
                 onAvatarChange={onAvatarChange}
                 onDetailsChange={onDetailsChange}
-              />
-            )}
-
-            {section === "LABOR" && (
-              <Labor
-                supabase={supabase}
-                state={state}
-                busy={busy}
-                onRefresh={refreshState}
-              />
-            )}
-
-            {section === "SEARCH" && (
-              <Search
-                supabase={supabase}
-                state={state}
-                busy={busy}
-                onRefresh={refreshState}
               />
             )}
 
@@ -548,12 +514,20 @@ export default function Casino({
               </>
             )}
 
-            {section === "EXCHANGE" && (
-              <Exchange
+            {section === "SHOP" && (
+              <Shop
                 supabase={supabase}
                 state={state}
                 busy={busy}
                 onBuyItem={onBuyItem}
+              />
+            )}
+
+            {section === "TRADE" && (
+              <PrivateTrade
+                supabase={supabase}
+                state={state}
+                busy={busy}
                 onRefresh={refreshState}
               />
             )}
@@ -582,9 +556,8 @@ export default function Casino({
             )}
           </main>
 
-          {/* ── 우측 3패널. 규칙이 맨 위이고 항상 펼쳐져 있다. ── */}
-          <aside className="grid min-w-0 items-start gap-2 tab:grid-cols-3 desk:grid-cols-1">
-            <RulesPanel state={state} />
+          {/* ── 우측 패널: 실시간 소식 · 순위 ── */}
+          <aside className="grid min-w-0 items-start gap-2 tab:grid-cols-2 desk:grid-cols-1">
             <LiveFeed supabase={supabase} userId={userId} holdSelf={busy} />
             <Leaderboard
               supabase={supabase}

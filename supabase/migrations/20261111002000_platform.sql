@@ -62,11 +62,6 @@ create policy "petition photos deleted by owner or admin"
 -- 시각은 UTC 기준이다(show timezone = UTC).
 create extension if not exists pg_cron;
 
--- 룸 주간 재배치: 일 21:05 UTC = 월 06:05 KST.
--- 정각이 아니라 5분 뒤인 이유: 일찍 튀면 app.cell_week_kst() 가 아직 지난주를
--- 가리켜 그 주 재배치를 통째로 건너뛰게 된다.
-select cron.schedule('cell-rotate-weekly', '5 21 * * 0', 'select app.cell_rotate();');
-
 -- 경마 정산: 출발(10:00 · 22:00 KST = 01:00 · 13:00 UTC) 1분 뒤.
 -- 정산은 화면이 열릴 때 lazy 로도 돌므로(app.race_ensure), 예약이 늦어도 결과는 같다.
 select cron.schedule('race-settle', '1 1,13 * * *', 'select app.race_settle_due();');

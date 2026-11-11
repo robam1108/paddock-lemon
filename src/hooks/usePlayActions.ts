@@ -10,7 +10,7 @@ import {
   type PlayerState,
 } from "@/lib/game";
 
-/** Casual 판을 여는 RPC와 정산 반영. 판정은 전부 서버(play_game 등)가 한다. */
+/** 캐주얼 판을 여는 RPC와 정산 반영. 판정은 전부 서버(play_game 등)가 한다. */
 export function usePlayActions({
   supabase,
   canPlay,

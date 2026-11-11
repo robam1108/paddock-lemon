@@ -2,58 +2,65 @@
 
 /* ────────────────────────────────────────────────────────────────
    Paddock — 디자인 토큰
-   채도를 낮춘 어두운 화면 위에 놋쇠색 하나만 강조로 쓴다.
-   그래서 검정이 아니라 안개 낀 청회색으로 뜬다.
-   구획은 테두리가 아니라 표면 5단계의 밝기 차로만 나눈다.
+   밝은 라운지. 아이보리 바탕에 골드를 강조로 쓰고, 딥레드와 딥그린을
+   승패·상태 포인트로 얹는다. 구획은 굵은 테두리가 아니라
+   표면 5단계의 밝기 차와 옅은 골드 선으로 나눈다.
    ──────────────────────────────────────────────────────────────── */
 
 @theme {
-  /* ── 표면 5단계. hue 210 고정, chroma 0.008 이하 ── */
-  --color-bg-0: oklch(0.16 0.006 210);
-  --color-bg-1: oklch(0.20 0.006 210);
-  /* 규칙 패널만 한 단 밝다. 항상 펼쳐 두는 유일한 패널이라 위계가 필요하다 */
-  --color-bg-2: oklch(0.21 0.006 210);
-  --color-surface: oklch(0.24 0.006 210);
-  --color-surface-hi: oklch(0.29 0.007 210);
-  --color-line: oklch(0.36 0.008 210);
-  --color-line-soft: oklch(0.30 0.007 210);
+  /* ── 표면 5단계. 아이보리(hue 85) ── */
+  --color-bg-0: oklch(0.955 0.016 86);
+  --color-bg-1: oklch(0.985 0.008 88);
+  --color-bg-2: oklch(0.99 0.006 88);
+  --color-surface: oklch(0.94 0.018 85);
+  --color-surface-hi: oklch(0.905 0.026 83);
+  --color-line: oklch(0.78 0.055 82);
+  --color-line-soft: oklch(0.88 0.030 84);
 
-  /* ── 텍스트 4단계. 대비는 --bg-0 기준 ── */
-  --color-fg-hi: oklch(0.95 0.006 210);   /* 12.6:1 */
-  --color-fg: oklch(0.80 0.007 210);      /*  8.6:1 */
-  --color-fg-mid: oklch(0.66 0.008 210);  /*  5.5:1 */
-  --color-fg-low: oklch(0.54 0.008 210);  /*  3.5:1 — 장식성 표기 전용 */
+  /* ── 텍스트 4단계. 짙은 차콜, 대비는 --bg-0 기준 ── */
+  --color-fg-hi: oklch(0.22 0.012 60);    /* 14:1 */
+  --color-fg: oklch(0.33 0.012 60);       /* 10:1 */
+  --color-fg-mid: oklch(0.46 0.014 65);   /*  6:1 */
+  --color-fg-low: oklch(0.58 0.016 70);   /* 3.6:1 — 장식성 표기 전용 */
 
-  /* ── 놋쇠. 유일한 강조색.
-     코인 색. 오래 손을 탄 금속처럼 광을 죽였다. ── */
-  --color-brass: oklch(0.78 0.070 82);
-  --color-brass-dim: oklch(0.60 0.062 82);
-  --color-brass-fill: oklch(0.30 0.030 82);
-  --color-brass-line: oklch(0.42 0.045 82);
+  /* ── 골드. 유일한 강조색이자 코인 색.
+     글자로 쓰는 brass 는 아이보리 위에서 읽히도록 한 단 진하게 잡았다. ── */
+  --color-brass: oklch(0.56 0.115 78);
+  --color-brass-dim: oklch(0.64 0.105 80);
+  --color-brass-fill: oklch(0.92 0.055 88);
+  --color-brass-line: oklch(0.72 0.115 82);
 
-  /* ── 상태색. 면이 아니라 게이지와 1~2px 선에만 얹는다 ── */
-  --color-hp: oklch(0.58 0.020 195);
-  --color-hp-empty: oklch(0.28 0.008 210);
-  --color-pick-high: oklch(0.62 0.045 195);
-  --color-pick-same: oklch(0.60 0.062 82);
-  --color-pick-low: oklch(0.58 0.045 25);
-  --color-loss: oklch(0.66 0.090 25);
-  /* 관리자 대기 점 전용. 구역별 톤 분기(아래)에서 일부러 재정의하지
-     않는다 — 프로필 구역의 무채색 규칙까지 깨고서라도 항상 초록으로 남아야
-     관리자가 눈에 띈다. */
-  --color-alert: oklch(0.72 0.14 145);
+  /* ── 에너지 게이지. 코인과 같은 골드 가족 — 구역 분기에서 재정의하지 않는다 ── */
+  --color-hp: oklch(0.66 0.110 80);
+  --color-hp-empty: oklch(0.90 0.030 86);
 
-  /* ── 카드. 화면에서 유일하게 밝은 면이다 ── */
-  --color-card-face: oklch(0.86 0.006 210);
-  --color-card-edge: oklch(0.62 0.008 210);
-  --color-card-inset: oklch(0.80 0.006 210);
-  --color-card-ink: oklch(0.22 0.008 210);
-  --color-card-ink-dim: oklch(0.45 0.008 210);
+  /* ── 상태색. 딥그린 = 좋음 · 오름, 딥레드 = 손실 · 내림 ── */
+  --color-pick-high: oklch(0.50 0.110 155);
+  --color-pick-same: oklch(0.62 0.110 80);
+  --color-pick-low: oklch(0.48 0.160 25);
+  --color-loss: oklch(0.48 0.160 25);
+  /* 관리자 대기 점 전용. 구역별 톤 분기(아래)에서 재정의하지 않는다 —
+     어느 구역에서든 항상 초록으로 남아야 관리자가 눈에 띈다. */
+  --color-alert: oklch(0.56 0.150 150);
+
+  /* ── 룰렛 원판 도료. 손실색 · 골드와 같은 가족으로 채도를 낮추고 명도를 올렸다.
+     숫자는 세 칸 모두 아이보리로 찍는다. ── */
+  --color-wheel-red: oklch(0.55 0.120 28);
+  --color-wheel-black: oklch(0.34 0.020 60);
+  --color-wheel-green: oklch(0.56 0.080 160);
+  --color-wheel-ink: oklch(0.97 0.010 88);
+
+  /* ── 카드. 흰 카드에 골드 테두리 ── */
+  --color-card-face: oklch(1 0 0);
+  --color-card-edge: oklch(0.76 0.075 82);
+  --color-card-inset: oklch(0.96 0.012 86);
+  --color-card-ink: oklch(0.22 0.012 60);
+  --color-card-ink-dim: oklch(0.48 0.012 60);
 
   /* ── 타입. 숫자·코드·로그·라벨은 등폭, 문장은 Pretendard ── */
   --font-sans: Pretendard, system-ui, -apple-system, "Malgun Gothic", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
-  /* 거래소 섹션 제목 전용 명조 */
+  /* 상점·개인거래 섹션 제목 전용 명조 */
   --font-hand: "Noto Serif KR", Pretendard, serif;
 
   /* ── 반응형. 목업이 JS로 재던 폭을 그대로 CSS 분기로 ── */
@@ -63,114 +70,49 @@
 
 /* ────────────────────────────────────────────────────────────────
    구역별 톤 분기
-   바뀌는 것은 색상각과 강조색뿐. 표면 5단계·간격·타입은 여섯 구역이 공유한다.
+   바뀌는 것은 바탕의 색 기운과 강조색뿐. 표면 단계·간격·타입은 모든 구역이 공유한다.
    유틸리티 이름은 그대로 두고 값만 갈아끼운다.
+   캐주얼 = 그린, 아레나 = 레드, 상점·개인거래 = 골드, 프로필 = 아이보리(기본).
    ──────────────────────────────────────────────────────────────── */
 
-/* 프로필 — 무채색 문서 구역.
-   놋쇠까지 무채색으로 덮어 이 구역에서는 강조색이 물리적으로 불가능하다. */
+/* 프로필 — 거의 흰 종이. 골드는 남겨 두되 선을 더 옅게. */
 [data-zone="record"] {
-  --color-bg-0: oklch(0.17 0 0);
-  --color-bg-1: oklch(0.20 0 0);
-  --color-bg-2: oklch(0.22 0 0);
-  --color-surface: oklch(0.24 0 0);
-  --color-surface-hi: oklch(0.29 0 0);
-  --color-line: oklch(0.36 0 0);
-  --color-line-soft: oklch(0.30 0 0);
-  --color-fg-hi: oklch(0.95 0 0);
-  --color-fg: oklch(0.80 0 0);
-  --color-fg-mid: oklch(0.66 0 0);
-  --color-fg-low: oklch(0.54 0 0);
-  --color-brass: oklch(0.82 0 0);
-  --color-brass-dim: oklch(0.62 0 0);
-  --color-brass-fill: oklch(0.28 0 0);
-  --color-brass-line: oklch(0.40 0 0);
-  --color-loss: oklch(0.72 0 0);
-  --color-hp: oklch(0.62 0 0);
-  --color-hp-empty: oklch(0.28 0 0);
+  --color-bg-0: oklch(0.965 0.010 88);
+  --color-surface: oklch(0.95 0.012 86);
+  --color-surface-hi: oklch(0.915 0.018 84);
+  --color-line: oklch(0.82 0.040 82);
+  --color-line-soft: oklch(0.90 0.020 84);
 }
 
-/* 일일 미션 — 배경 hue 95(카키). record 보다 반 단 밝다. */
-[data-zone="labor"] {
-  --color-bg-0: oklch(0.18 0.012 95);
-  --color-bg-1: oklch(0.21 0.012 95);
-  --color-bg-2: oklch(0.22 0.012 95);
-  --color-surface: oklch(0.25 0.012 95);
-  --color-surface-hi: oklch(0.30 0.014 95);
-  --color-line: oklch(0.37 0.016 95);
-  --color-line-soft: oklch(0.31 0.014 95);
-  --color-fg-hi: oklch(0.95 0.008 95);
-  --color-fg: oklch(0.80 0.010 95);
-  --color-fg-mid: oklch(0.66 0.011 95);
-  --color-fg-low: oklch(0.54 0.011 95);
-  --color-brass: oklch(0.78 0.070 90);
-  --color-brass-dim: oklch(0.60 0.062 90);
-  --color-brass-fill: oklch(0.30 0.030 90);
-  --color-brass-line: oklch(0.42 0.045 90);
+/* 캐주얼 — 그린 펠트 기운이 도는 아이보리. */
+[data-zone="casual"] {
+  --color-bg-0: oklch(0.95 0.022 145);
+  --color-surface: oklch(0.935 0.026 145);
+  --color-surface-hi: oklch(0.90 0.036 148);
+  --color-line: oklch(0.76 0.060 150);
+  --color-line-soft: oklch(0.87 0.034 148);
 }
 
-/* 탐험 — 배경 hue 250(찬 회청), 표면 전체 −0.02. 밤에 돌아다니는 곳이라
-   가장 어둡다. black(hue 20)과 헷갈리지 않게 색상환에서 멀리 뒀다. */
-[data-zone="search"] {
-  --color-bg-0: oklch(0.14 0.010 250);
-  --color-bg-1: oklch(0.17 0.010 250);
-  --color-bg-2: oklch(0.18 0.010 250);
-  --color-surface: oklch(0.21 0.010 250);
-  --color-surface-hi: oklch(0.26 0.012 250);
-  --color-line: oklch(0.33 0.014 250);
-  --color-line-soft: oklch(0.27 0.012 250);
-  --color-fg-hi: oklch(0.95 0.006 250);
-  --color-fg: oklch(0.80 0.008 250);
-  --color-fg-mid: oklch(0.66 0.009 250);
-  --color-fg-low: oklch(0.54 0.009 250);
-  --color-brass: oklch(0.76 0.060 85);
-  --color-brass-dim: oklch(0.60 0.055 85);
-  --color-brass-fill: oklch(0.28 0.028 85);
-  --color-brass-line: oklch(0.40 0.040 85);
-}
-
-/* Arena — 배경 hue 20(온난), 표면 전체 −0.03.
-   어두운 건 정보를 덜 준다는 뜻이다. */
+/* 아레나 — 와인 레드 기운이 도는 크림. 강조도 레드로 넘어간다. */
 [data-zone="black"] {
-  --color-bg-0: oklch(0.13 0.012 20);
-  --color-bg-1: oklch(0.17 0.012 20);
-  --color-bg-2: oklch(0.18 0.012 20);
-  --color-surface: oklch(0.21 0.012 20);
-  --color-surface-hi: oklch(0.26 0.013 20);
-  --color-line: oklch(0.33 0.014 20);
-  --color-line-soft: oklch(0.27 0.013 20);
-  --color-fg-hi: oklch(0.95 0.006 20);
-  --color-fg: oklch(0.80 0.007 20);
-  --color-fg-mid: oklch(0.66 0.008 20);
-  --color-fg-low: oklch(0.54 0.008 20);
-  /* 정의서의 0.62/0.100/25 는 라벨 자리(brass-dim)로 내렸다.
-     코인 숫자가 쓰는 brass 는 7:1 하한을 지켜야 해서 한 단 밝게 잡았다. */
-  --color-brass: oklch(0.74 0.095 25);
-  --color-brass-dim: oklch(0.62 0.100 25);
-  --color-brass-fill: oklch(0.28 0.045 25);
-  --color-brass-line: oklch(0.38 0.060 25);
-  --color-hp: oklch(0.58 0.020 25);
-  --color-hp-empty: oklch(0.24 0.012 20);
+  --color-bg-0: oklch(0.95 0.020 30);
+  --color-surface: oklch(0.935 0.024 28);
+  --color-surface-hi: oklch(0.90 0.034 26);
+  --color-line: oklch(0.76 0.070 25);
+  --color-line-soft: oklch(0.87 0.034 26);
+  --color-brass: oklch(0.47 0.165 25);
+  --color-brass-dim: oklch(0.56 0.150 25);
+  --color-brass-fill: oklch(0.92 0.040 22);
+  --color-brass-line: oklch(0.68 0.120 25);
 }
 
-/* 거래소 — 배경 hue 70(마분지).
-   종이에 적어 붙인 게시판 느낌이다. */
+/* 상점 · 개인거래 — 샴페인 골드 기운이 가장 짙다. */
 [data-zone="exchange"] {
-  --color-bg-0: oklch(0.18 0.010 70);
-  --color-bg-1: oklch(0.22 0.010 70);
-  --color-bg-2: oklch(0.23 0.010 70);
-  --color-surface: oklch(0.26 0.010 70);
-  --color-surface-hi: oklch(0.31 0.012 70);
-  --color-line: oklch(0.38 0.014 70);
-  --color-line-soft: oklch(0.32 0.012 70);
-  --color-fg-hi: oklch(0.95 0.008 70);
-  --color-fg: oklch(0.82 0.010 70);
-  --color-fg-mid: oklch(0.68 0.012 70);
-  --color-fg-low: oklch(0.56 0.012 70);
-  --color-brass: oklch(0.80 0.045 70);
-  --color-brass-dim: oklch(0.64 0.040 70);
-  --color-brass-fill: oklch(0.32 0.025 70);
-  --color-brass-line: oklch(0.44 0.032 70);
+  --color-bg-0: oklch(0.945 0.030 85);
+  --color-surface: oklch(0.93 0.034 84);
+  --color-surface-hi: oklch(0.895 0.044 82);
+  --color-line: oklch(0.74 0.080 80);
+  --color-line-soft: oklch(0.86 0.045 82);
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -229,7 +171,7 @@
    ──────────────────────────────────────────────────────────────── */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -323,7 +265,7 @@ button:disabled {
   transition: opacity 180ms ease-out;
 }
 
-/* 키노 — 적중한 칸에만 놋쇠 면이 한 번에 들어온다.
+/* 키노 — 적중한 칸에만 골드 면이 한 번에 들어온다.
    숫자가 하나씩 뽑히는 간격 자체가 정보라서 남기는 순서이고(원판·주사위
    주석 참고), 칸 하나하나의 변화는 상태 전환 90ms 그대로다. 면이 들어오는
    이 한 번만 카드 뒤집기와 같은 140ms 예산을 쓴다. */
@@ -344,12 +286,12 @@ button:disabled {
 .card-hatch {
   background-image: repeating-linear-gradient(
     45deg,
-    oklch(1 0 0 / 0.03) 0 2px,
+    oklch(0.6 0.08 80 / 0.10) 0 2px,
     transparent 2px 7px
   );
 }
 
-/* 상점·거래 — 종이 조각을 붙여 놓은 게시판 느낌이다.
+/* 상점·개인거래 — 종이 조각을 붙여 놓은 게시판 느낌이다.
    그래서 줄이 정확히 안 맞는다. 몇 px 어긋난 게 여기서는 정상이다. */
 .pinboard > *:nth-child(3n + 1) {
   transform: translateY(-2px);
@@ -361,10 +303,10 @@ button:disabled {
   transform: translateY(-1px);
 }
 
-/* 스캔라인은 헤더 띠에만. 2%. */
+/* 헤더 띠의 가는 골드 결. */
 .scanline {
   background-image: repeating-linear-gradient(
-    oklch(1 0 0 / 0.02) 0 1px,
+    oklch(0.7 0.1 82 / 0.06) 0 1px,
     transparent 1px 3px
   );
 }
@@ -372,7 +314,7 @@ button:disabled {
 /* 패널·입력 필드에 얹는 옅은 스캔라인. 헤더보다 훨씬 여리다. */
 .scanline-faint {
   background-image: repeating-linear-gradient(
-    oklch(1 0 0 / 0.012) 0 1px,
+    oklch(0.7 0.1 82 / 0.03) 0 1px,
     transparent 1px 3px
   );
 }
@@ -387,7 +329,7 @@ button:disabled {
 }
 
 /* ── 주사위 ────────────────────────────────────────────────────
-   Arena 대전의 판정 피드백. 구르는 시간이 곧 "아직 안 나왔다"는 정보라서
+   아레나 대전의 판정 피드백. 구르는 시간이 곧 "아직 안 나왔다"는 정보라서
    남긴다. 다만 반들거리는 흰 주사위는 이 화면에 없다 — 오래 굴려서 모서리가
    닳은 물건이라 면은 패와 같은 종이색이고 광택이 없다.
    회전 대신 판 위에서 네 모서리로 튕기듯 흔들리며, 그 사이 눈(점)이
@@ -505,49 +447,6 @@ button:disabled {
     animation: none;
     opacity: 0;
   }
-}
-
-/* ────────────────────────────────────────────────────────────────
-   탐험 고양이 — 화면에서 유일하게 귀여운 것. 여기만 동작을 아끼지 않는다.
-   고양이 자신은 가만히 있고, 도망칠 때(cat-flee)만 움직인다. 기분은 주변이
-   보여준다 — 하트·발자국은 떠오르다 사라지고(cat-float) 말풍선은 둥둥 뜬다(cat-bubble).
-   cat-pop 은 고양이가 물어 온 선물 아이템이 튀어나올 때 쓴다.
-   주사위·경마처럼 prefers-reduced-motion 에서도 끄지 않는다 — 이 연출이 곧 내용이고,
-   Windows 애니메이션 효과를 꺼 둔 기기에서는 고양이가 아예 움직이지 않게 된다.
-   ──────────────────────────────────────────────────────────────── */
-
-@keyframes cat-pop {
-  0%   { transform: translateY(110%) scale(0.6); }
-  60%  { transform: translateY(-12%) scale(1.08, 0.94); }
-  80%  { transform: translateY(4%) scale(0.96, 1.04); }
-  100% { transform: translateY(0) scale(1); }
-}
-@keyframes cat-flee {
-  0%   { transform: translateX(0) scaleX(1); opacity: 1; }
-  15%  { transform: translateX(-10px) scaleX(-1) translateY(-6px); opacity: 1; }
-  100% { transform: translateX(260px) scaleX(-1); opacity: 0; }
-}
-@keyframes cat-float {
-  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
-  20%  { opacity: 1; }
-  100% { transform: translateY(-64px) scale(1.15); opacity: 0; }
-}
-@keyframes cat-bubble {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-4px); }
-}
-
-.cat-pop {
-  animation: cat-pop 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-.cat-flee {
-  animation: cat-flee 900ms cubic-bezier(0.5, 0, 0.75, 0) forwards;
-}
-.cat-float {
-  animation: cat-float 1.8s ease-out infinite;
-}
-.cat-bubble {
-  animation: cat-bubble 1.2s ease-in-out infinite;
 }
 
 /* ────────────────────────────────────────────────────────────────

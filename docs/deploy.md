@@ -18,7 +18,7 @@ CLI 가 다른 프로젝트(운영 원본)에 링크돼 있을 수 있으므로 
 **값 없는 `--remote` 는 링크된 프로젝트를 가리킨다 — 반드시 `--remote=URL` 꼴로 쓴다.**
 
 ```bash
-# 마이그레이션 13개 + seed(경주마 20두 · 아이템 카탈로그 · 미션 보상표 · 데모 계정)
+# 마이그레이션 11개 + seed(경주마 20두 · 아이템 카탈로그 · 데모 계정)
 npx supabase db push --remote="$DEMO_DB_URL" --include-seed
 ```
 
@@ -39,7 +39,7 @@ update auth.users
 | --- | --- |
 | Authentication → Sign In / Providers | **Allow anonymous sign-ins** 켬(게스트 체험). Email 가입(Allow new users to sign up)은 끔 — 계정은 관리자가 발급한다. |
 | Authentication → Rate Limits | 익명 로그인 시간당 한도(기본 30/IP)를 확인한다. |
-| Database → Cron | `race-settle`(10:00 · 22:00 KST 정산), `cell-rotate-weekly`, `guest-cleanup`(매시 17분, 24시간 지난 게스트 삭제)이 보이면 정상이다. 마이그레이션이 등록한다. |
+| Database → Cron | `race-settle`(10:00 · 22:00 KST 정산), `guest-cleanup`(매시 17분, 24시간 지난 게스트 삭제)이 보이면 정상이다. 마이그레이션이 등록한다. |
 
 게스트 체험을 닫으려면 Auth 의 Anonymous sign-ins 를 끄거나, 새 마이그레이션으로 `app.guest_open()` 이 `false` 를 돌려주게 한다.
 
@@ -60,7 +60,7 @@ update auth.users
 
 1. 배포 URL 의 `/login` 에 **로그인 없이 체험하기** 버튼이 보인다.
 2. 눌러서 들어가면 머리줄 위에 "게스트 체험 중" 안내와 `guest######` 아이디가 보인다.
-3. Arena → 경마장 → 다음 경주에 단승 한 장(20코인, 게스트 시작 코인 그대로).
+3. 아레나 → 경마장 → 다음 경주에 단승 한 장(50코인 이하, 게스트 시작 코인 50).
    정식 경주는 하루 두 번(10:00 · 22:00 KST)이라 시연 직전에 바로 보려면 관리자 계정의 **경마장 사전 확인**(테스트 경주, 코인이 움직이지 않음)을 쓴다.
 4. 무료 플랜 프로젝트는 오래 접속이 없으면 일시정지될 수 있다. 면접 · 지원 전에 대시보드에서 깨워 둔다.
 

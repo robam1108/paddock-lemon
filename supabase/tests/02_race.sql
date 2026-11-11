@@ -1,6 +1,6 @@
 -- 경마 — 배당 기대값, 마감 전 결과 비노출, 정산 한 번.
 begin;
-select plan(12);
+select plan(20);
 
 -- ── 배당 기대값 ≈ 1 − 공제율 ───────────────────────────────────────────
 -- 공개 정보(능력치 + 무작위 컨디션)로 만든 몬테카를로 배당표에, 같은 모델로 4,000경주를
@@ -85,6 +85,41 @@ select is((select count(*)::int from public.game_rounds
 select ok((select app.race_json(r, null) -> 'cond' <> 'null'::jsonb
              from public.races r where id = (select id from t_race)),
           '정산 뒤에는 컨디션이 공개된다');
+
+-- ── 연습 경주: 누구나 편성 · 본인만 보임 · 코인 불변 ─────────────────
+create temp table t_prac (id bigint, coins integer) on commit drop;
+grant all on t_prac to authenticated;
+
+select tests.login('demo01');
+select lives_ok($$ select public.race_practice('create') $$, '일반 사용자도 연습 경주를 편성한다');
+insert into t_prac (id) select (public.race_card() -> 'test' ->> 'id')::bigint;
+select throws_ok($$ select public.race_practice('create') $$, 'P0001', 'RACE_PRACTICE_WAIT',
+                 '연습 경주는 곧바로 다시 편성할 수 없다');
+select throws_ok($$ select public.race_admin_test('create', '{}'::jsonb) $$, 'P0001', 'NOT_ADMIN',
+                 '관리자 테스트 패널은 여전히 관리자 전용이다');
+select tests.logout();
+
+select ok((select is_test and status = 'open' and created_by = (select id from public.profiles where username = 'demo01')
+             from public.races where id = (select id from t_prac)),
+          '편성된 연습 경주는 본인 소유의 열린 테스트 경주다');
+
+select tests.login('demo02');
+select ok(public.race_card() -> 'test' = 'null'::jsonb, '다른 사용자에게는 남의 연습 경주가 보이지 않는다');
+select tests.logout();
+
+update t_prac set coins = (select coins from public.profiles where username = 'demo01');
+select tests.login('demo01');
+select public.race_bet((select id from t_prac), 'win', array[1], 20);
+select public.race_practice('start');
+select tests.logout();
+
+select ok((select status = 'done' and result is not null from public.races where id = (select id from t_prac)),
+          '지금 발주하면 연습 경주 결과가 바로 난다');
+select is((select coins from public.profiles where username = 'demo01'), (select coins from t_prac),
+          '연습 경주는 베팅 · 정산 내내 코인을 움직이지 않는다');
+select is((select count(*)::int from public.game_rounds
+            where game = 'race' and (outcome ->> 'race_id')::bigint = (select id from t_prac)), 0,
+          '연습 경주는 경주 기록을 남기지 않는다');
 
 select * from finish();
 rollback;

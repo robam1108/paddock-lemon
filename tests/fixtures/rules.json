@@ -1,8 +1,4 @@
 {
-  "cat": {
-    "bird_plays": 3,
-    "bird_stake": 10
-  },
   "keno": {
     "mult": {
       "2": 1.5,
@@ -75,7 +71,7 @@
   "hp_per_play": 1,
   "pvp_min_bet": 50,
   "clover_stake": 15,
-  "initial_coins": 20,
+  "initial_coins": 50,
   "operator_name": "admin",
   "bonus_plays_max": 8,
   "extra_plays_max": 8

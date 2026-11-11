@@ -1,9 +1,8 @@
 "use client";
 
-import { laborTitle } from "@/lib/labor";
 import { LEDGER_KIND_LABEL } from "@/lib/game";
 import MonoLabel from "../ui/MonoLabel";
-import { action, adminLine, gameLine, gameTitle, laborLine, searchLine } from "./shared";
+import { action, adminLine, gameLine, gameTitle } from "./shared";
 import type { RecordModel } from "./useRecordModel";
 
 /** 기록 탭 — 최근 코인 원장. */
@@ -35,15 +34,10 @@ export default function HistoryTab({ m }: { m: RecordModel }) {
                 const line =
                   e.kind === "game"
                     ? gameLine(e.title, e.detail)
-                    : e.kind === "labor"
-                      ? laborLine(e.detail)
-                      : e.kind === "search"
-                        ? searchLine(e.detail)
-                        : e.kind === "admin"
-                          ? adminLine(e.detail)
-                          : null;
-                const title =
-                  e.kind === "labor" ? laborTitle(e.title) : gameTitle(e.title);
+                    : e.kind === "admin"
+                      ? adminLine(e.detail)
+                      : null;
+                const title = gameTitle(e.title);
                 return (
                   <li
                     key={e.id}

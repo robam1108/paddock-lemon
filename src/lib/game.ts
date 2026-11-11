@@ -188,11 +188,11 @@ export type HighLowOutcome = {
 export type HpStatus = "충분" | "보통" | "부족" | "바닥" | "휴식";
 
 export const HP_TIERS: { max: number; status: HpStatus; className: string }[] = [
-  { max: 0, status: "휴식", className: "text-rose-400" },
-  { max: 10, status: "바닥", className: "text-red-400" },
-  { max: 30, status: "부족", className: "text-orange-400" },
-  { max: 50, status: "보통", className: "text-amber-400" },
-  { max: 100, status: "충분", className: "text-emerald-400" },
+  { max: 0, status: "휴식", className: "text-rose-700" },
+  { max: 10, status: "바닥", className: "text-red-700" },
+  { max: 30, status: "부족", className: "text-orange-700" },
+  { max: 50, status: "보통", className: "text-amber-700" },
+  { max: 100, status: "충분", className: "text-emerald-700" },
 ];
 
 /** 서버 app.hp_status 와 같은 구간을 쓴다 */
@@ -201,7 +201,7 @@ export function hpStatus(hp: number): HpStatus {
 }
 
 export function hpClass(status: string): string {
-  return HP_TIERS.find((t) => t.status === status)?.className ?? "text-white/60";
+  return HP_TIERS.find((t) => t.status === status)?.className ?? "text-fg-mid";
 }
 
 /** 남은 시간을 "12시간 34분" 처럼 */
@@ -223,15 +223,14 @@ export function formatDaysLeft(seconds: number): string {
 }
 
 /* ---------------- 라운지 카테고리 ---------------- */
-export type Section = "RECORD" | "LABOR" | "SEARCH" | "WHITE" | "BLACK" | "EXCHANGE";
+export type Section = "RECORD" | "WHITE" | "BLACK" | "SHOP" | "TRADE";
 
 export const SECTIONS: { id: Section; label: string }[] = [
   { id: "RECORD", label: "프로필" },
-  { id: "LABOR", label: "일일 미션" },
-  { id: "SEARCH", label: "탐험" },
-  { id: "WHITE", label: "Casual" },
-  { id: "BLACK", label: "Arena" },
-  { id: "EXCHANGE", label: "상점·거래" },
+  { id: "WHITE", label: "캐주얼" },
+  { id: "BLACK", label: "아레나" },
+  { id: "SHOP", label: "상점" },
+  { id: "TRADE", label: "개인거래" },
 ];
 
 /* ---------------- 개인 거래 ---------------- */
@@ -281,7 +280,7 @@ export const TRADE_STATUS_LABEL: Record<TradeStatus, string> = {
 /* ---------------- 원장 ---------------- */
 export type LedgerEntry = {
   id: number;
-  kind: "game" | "shop" | "trade" | "labor" | "search" | "admin";
+  kind: "game" | "shop" | "trade" | "admin";
   title: string;
   coin_delta: number;
   coin_after: number;
@@ -293,9 +292,6 @@ export const LEDGER_KIND_LABEL: Record<string, string> = {
   game: "게임",
   shop: "상점",
   trade: "거래",
-  labor: "미션",
-  search: "탐험",
-  cat: "고양이",
   admin: "관리",
 };
 
@@ -392,7 +388,6 @@ export type PvpState = {
   player: PlayerState;
 };
 
-
 export type PlayResult = Omit<PlayerState, "extra_plays" | "extra_max" | "extra_left"> & {
   // 서버 응답에 이 키가 빠져 있어도 동작하도록
   // 옵셔널로 두고, 없으면 toPlayerState 에서 bonus 값으로 대체한다.
@@ -454,8 +449,6 @@ export function toPlayerState(r: PlayResult): PlayerState {
     suspended_until: r.suspended_until,
     suspended_left: r.suspended_left,
     suspend_reason: r.suspend_reason,
-    cell_id: r.cell_id,
-    cell: r.cell,
     status_message: r.status_message,
     age: r.age,
     height_cm: r.height_cm,

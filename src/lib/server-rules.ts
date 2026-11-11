@@ -23,7 +23,6 @@ export type Rules = {
   highlow: { max_stage: number; edge: number[]; max_mult: number };
   keno: { range: number; picks: number; draws: number; mult: Record<string, number> };
   clover_stake: number;
-  cat: { bird_stake: number; bird_plays: number };
   race: { public: boolean; min_bet: number; max_bet: number; take: number };
 };
 

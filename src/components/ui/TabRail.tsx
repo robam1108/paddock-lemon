@@ -8,7 +8,7 @@
  * 마지막 하나가 둘째 줄로 떨어져 있었다(지금은 구역이 여섯으로 늘어
  * `grid-cols-3 tab:grid-cols-6` 을 쓴다 — 375px 에서 3열 2행).
  *
- * 활성 표시는 면 밝기(surface-hi) + 놋쇠 2px 선. 색만으로 구분하지 않는다.
+ * 활성 표시는 면 밝기(surface-hi) + 골드 2px 선. 색만으로 구분하지 않는다.
  */
 export default function TabRail<T extends string>({
   items,

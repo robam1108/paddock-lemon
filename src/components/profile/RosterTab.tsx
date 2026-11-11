@@ -1,6 +1,5 @@
 "use client";
 
-import { identityOf } from "@/lib/identity";
 import TabRail from "../ui/TabRail";
 import MonoLabel from "../ui/MonoLabel";
 import { action, approvedRelationsFor, ROSTER_SUBS } from "./shared";
@@ -10,7 +9,6 @@ import type { RecordModel } from "./useRecordModel";
 /** 친구 탭 — 친구 피드와 플레이어 목록 · 상세. */
 export default function RosterTab({ m }: { m: RecordModel }) {
   const {
-    catFavorite,
     deleteRelation,
     openRelationEdit,
     picked,
@@ -64,13 +62,13 @@ export default function RosterTab({ m }: { m: RecordModel }) {
                       >
                         <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-1.5">
                           <MonoLabel tone="low">
-                            {identityOf(r.username).no} {r.username}
+                            {r.username}
                           </MonoLabel>
                           {r.partner && (
                             <>
                               <span className="text-fg-low">↔</span>
                               <MonoLabel tone="low">
-                                {identityOf(r.partner).no} {r.partner}
+                                {r.partner}
                               </MonoLabel>
                             </>
                           )}
@@ -111,13 +109,13 @@ export default function RosterTab({ m }: { m: RecordModel }) {
                       <li key={r.id} className="bg-surface flex flex-col gap-1 p-3">
                         <div className="flex min-w-0 flex-wrap items-baseline gap-1.5">
                           <MonoLabel tone="low" className="min-w-0 truncate">
-                            {`${identityOf(r.username).no} ${r.username}`}
+                            {`$${r.username}`}
                           </MonoLabel>
                           {r.partner && (
                             <>
                               <span className="text-fg-low">↔</span>
                               <MonoLabel tone="low" className="min-w-0 truncate">
-                                {`${identityOf(r.partner).no} ${r.partner}`}
+                                {`$${r.partner}`}
                               </MonoLabel>
                             </>
                           )}
@@ -206,7 +204,7 @@ export default function RosterTab({ m }: { m: RecordModel }) {
 
           {rosterSub === "list" && (
             <>
-          {/* 플레이어 목록 — 번호·이름·상태. 이름을 누르면 바로 아래에 그 사람의 프로필이 펼쳐진다. */}
+          {/* 플레이어 목록 — 이름·상태. 이름을 누르면 바로 아래에 그 사람의 프로필이 펼쳐진다. */}
           <section className="bg-bg-1 flex flex-col gap-2 p-4">
             <MonoLabel tone="low">플레이어 {roster.length}명</MonoLabel>
             {roster.length === 0 ? (
@@ -216,17 +214,11 @@ export default function RosterTab({ m }: { m: RecordModel }) {
             ) : (
               <ul className="grid grid-cols-2 gap-x-3 tab:grid-cols-1">
                 {roster.map((p) => {
-                  const id = identityOf(p.username);
-                  const sameCell =
-                    p.cell_id != null &&
-                    p.cell_id === state.cell_id &&
-                    p.username !== state.username;
                   return (
                     <li
                       key={p.username}
-                      className="mono-13 border-line-soft grid grid-cols-[44px_minmax(0,1fr)] items-baseline gap-2 border-b py-2 tab:grid-cols-[52px_minmax(0,1fr)] tab:gap-3"
+                      className="mono-13 border-line-soft flex items-baseline border-b py-2"
                     >
-                      <span className="text-fg-low tabular-nums">{id.no}</span>
                       <div className="flex min-w-0 items-baseline gap-1.5">
                         <button
                           type="button"
@@ -239,11 +231,6 @@ export default function RosterTab({ m }: { m: RecordModel }) {
                         >
                           {p.username}
                         </button>
-                        {sameCell && (
-                          <span className="label-11 border-line-soft text-fg-low shrink-0 border px-1 py-px">
-                            같은 룸
-                          </span>
-                        )}
                         {p.in_ward && (
                           <span className="label-11 border-loss/40 text-loss shrink-0 border px-1 py-px">
                             휴식
@@ -259,10 +246,8 @@ export default function RosterTab({ m }: { m: RecordModel }) {
 
           {picked && (
             <ProfileCard
-              no={identityOf(picked.username).no}
               username={picked.username}
               avatarUrl={playerAvatarUrl(picked.avatar_path)}
-              cell={picked.cell}
               status_message={picked.status_message}
               age={picked.age}
               heightCm={picked.height_cm}
@@ -271,7 +256,6 @@ export default function RosterTab({ m }: { m: RecordModel }) {
               hpMax={picked.hp_max}
               bio={picked.bio}
               flex={picked.flex.map((text) => ({ text }))}
-              catLoved={catFavorite === picked.username}
               relations={approvedRelationsFor(picked.username, relations)}
             />
           )}

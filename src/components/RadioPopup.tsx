@@ -111,7 +111,7 @@ export default function RadioPopup({
                   <p className="mono-13 text-fg-low border-line-soft border-b pb-1.5">
                     【인사이더 팁】{" "}
                     {news.race.is_test
-                      ? "테스트 경주"
+                      ? "연습 경주"
                       : `${dayLabel(news.race.day)} 제${news.race.no}경주(${kstTime(news.race.post_at)})`}{" "}
                     · {news.race.distance}m · 주로 {TRACK_NAME[news.race.track]}
                   </p>

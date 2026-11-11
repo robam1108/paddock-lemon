@@ -6,7 +6,7 @@ import ItemMark from "./ui/ItemMark";
 import MonoLabel from "./ui/MonoLabel";
 
 /**
- * 음료·구운 고구마·구운 생선 중 함께 쓸 수 있는 것(item.shareable)을 쓰기 전에 뜨는 창.
+ * 함께 쓸 수 있는 음료·간식(item.shareable)을 쓰기 전에 뜨는 창.
  * 혼자 쓰거나, 플레이어 한 명을 골라 함께 쓴다 — 함께 쓰면 고른 사람에게도
  * 프로필 표시가 붙는다. 휴식 중인 사람과 본인은 목록에 아예 나오지 않는다
  * (mates 를 넘기는 쪽이 이미 걸러 준다).

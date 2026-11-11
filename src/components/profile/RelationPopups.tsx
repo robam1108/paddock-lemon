@@ -1,7 +1,6 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { identityOf } from "@/lib/identity";
 import MonoLabel from "../ui/MonoLabel";
 import { action } from "./shared";
 import type { RecordModel } from "./useRecordModel";
@@ -63,7 +62,7 @@ export default function RelationPopups({ m }: { m: RecordModel }) {
                 <MonoLabel tone="low">상대</MonoLabel>
                 {relLocked ? (
                   <p className="mono-13 border-line-soft bg-surface text-fg-hi border px-3 py-2.5">
-                    {identityOf(relPartner).no} {relPartner}
+                    {relPartner}
                   </p>
                 ) : (
                   <select
@@ -80,7 +79,7 @@ export default function RelationPopups({ m }: { m: RecordModel }) {
                       )
                       .map((r) => (
                         <option key={r.username} value={r.username}>
-                          {identityOf(r.username).no} {r.username}
+                          {r.username}
                         </option>
                       ))}
                   </select>
@@ -145,14 +144,12 @@ export default function RelationPopups({ m }: { m: RecordModel }) {
               <div className="flex flex-col gap-2 p-4">
                 <div className="flex min-w-0 flex-wrap items-baseline gap-1.5">
                   <MonoLabel tone="low" className="min-w-0 truncate">
-                    {identityOf(relRejectedView.username).no}{" "}
                     {relRejectedView.username}
                   </MonoLabel>
                   {relRejectedView.partner && (
                     <>
                       <span className="text-fg-low">↔</span>
                       <MonoLabel tone="low" className="min-w-0 truncate">
-                        {identityOf(relRejectedView.partner).no}{" "}
                         {relRejectedView.partner}
                       </MonoLabel>
                     </>

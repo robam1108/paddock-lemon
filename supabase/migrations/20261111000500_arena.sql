@@ -450,7 +450,7 @@ begin
     raise exception 'PAIR_LIMIT';
   end if;
 
-  -- 플레이 횟수(plays_used)는 건드리지 않는다. Arena 는 Casual 과 몫을
+  -- 플레이 횟수(plays_used)는 건드리지 않는다. 아레나 는 캐주얼 과 몫을
   -- 나눠 쓰지 않는다 — 여기서 드는 값은 판돈과 에너지뿐이다.
   update public.profiles
      set coins = coins - m.bet

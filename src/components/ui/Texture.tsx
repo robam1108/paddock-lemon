@@ -1,7 +1,7 @@
 /**
  * 화면 질감.
  *
- * 화면은 CRT 도 아니고 새 LCD 도 아닌, 오래 쓴 모니터 느낌이다.
+ * 밝은 라운지의 종이 결. 고운 노이즈와 가장자리의 옅은 골드 비네트.
  * 노이즈는 배경 3% / 텍스트 위 1.2%, 비네트는 가장자리에만. 스캔라인은
  * 여기 없다 — 헤더 띠에만 얹는다(globals.css 의 .scanline).
  *
@@ -41,13 +41,13 @@ export default function Texture() {
           backgroundSize: "160px 160px",
         }}
       />
-      {/* 가장자리가 죽은 화면. 오래된 패널의 광량 저하. */}
+      {/* 가장자리에만 옅은 골드 비네트. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-63"
         style={{
           background:
-            "radial-gradient(120% 100% at 50% 45%, transparent 62%, oklch(0 0 0 / 0.12) 100%)",
+            "radial-gradient(120% 100% at 50% 45%, transparent 62%, oklch(0.55 0.09 80 / 0.10) 100%)",
         }}
       />
     </>

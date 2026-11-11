@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { eulReul, iGa, settleLine, waGwa } from "@/lib/copy";
 import { formatDaysLeft, formatDuration } from "@/lib/game";
 import { ERROR_MESSAGES, toKoreanError } from "@/lib/errors";
-import { formatPlayerNo, identityOf } from "@/lib/identity";
 
 describe("조사", () => {
   it("받침 유무로 고른다", () => {
@@ -13,7 +12,7 @@ describe("조사", () => {
     expect(waGwa("빵")).toBe("과");
     expect(waGwa("우유")).toBe("와");
     expect(iGa("말")).toBe("이");
-    expect(iGa("고양이")).toBe("가");
+    expect(iGa("나비")).toBe("가");
   });
 
   it("한글로 끝나지 않으면 둘 다 적는다", () => {
@@ -40,11 +39,6 @@ describe("시간 · 결과 표기", () => {
     expect(settleLine(0, 5)).toMatch(/^본전/);
   });
 
-  it("플레이어 번호는 #0001 꼴이고 같은 아이디는 같은 번호", () => {
-    expect(formatPlayerNo(1)).toBe("#0001");
-    expect(identityOf("demo01").no).toMatch(/^#\d{4}$/);
-    expect(identityOf("demo01")).toEqual(identityOf("demo01"));
-  });
 });
 
 describe("서버 오류 코드 → 화면 문구", () => {

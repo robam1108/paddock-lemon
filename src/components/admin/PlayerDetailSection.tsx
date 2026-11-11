@@ -1,7 +1,6 @@
 "use client";
 
 import { formatDaysLeft, formatDuration, ITEM_GRADE_LABEL, LEDGER_KIND_LABEL } from "@/lib/game";
-import { laborTitle } from "@/lib/labor";
 import Panel from "../ui/Panel";
 import MonoLabel from "../ui/MonoLabel";
 import { DANGER, formatShort, ledgerState, SMALL, Stat } from "./ui";
@@ -162,7 +161,7 @@ export default function PlayerDetailSection({ m }: { m: AdminModel }) {
                         {LEDGER_KIND_LABEL[e.kind] ?? e.kind}
                       </span>
                       <span className="text-fg truncate">
-                        {e.kind === "labor" ? laborTitle(e.title) : e.title}
+                        {e.title}
                       </span>
                       <span
                         className={`text-right tabular-nums ${

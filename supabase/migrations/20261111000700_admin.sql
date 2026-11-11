@@ -402,11 +402,6 @@ begin
   v_pw := app.gen_password();
   perform public.admin_create_player(v_name, v_pw);
 
-  -- 계정(프로필) 행은 auth.users 트리거가 만드므로 그 다음에 룸을 배정한다.
-  -- (숨김 계정은 트리거가 이미 cell_id 를 null 로 남겨 두므로 여기서 건드리지 않는다)
-  update public.profiles set cell_id = app.assign_cell()
-   where username = v_name and cell_id is null and not hidden;
-
   return jsonb_build_object('name', v_name, 'password', v_pw);
 end;
 $$;

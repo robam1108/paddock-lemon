@@ -1,17 +1,10 @@
--- social — 친구 · 룸 배치 · 피드백 · 프로필 사진/정보
+-- social — 친구 · 피드백 · 프로필 사진/정보
 --
 -- 여기 정의된 함수의 몸통은 저장소 전체에서 이 파일에만 있다(같은 함수가 두 곳에 보이면 버그다).
 
 set check_function_bodies = false;
 
 -- ════════ 테이블 ════════
-
-CREATE TABLE public.cell_rotations (
-    week_at timestamp with time zone NOT NULL,
-    done_at timestamp with time zone DEFAULT now() NOT NULL,
-    rooms integer DEFAULT 0 NOT NULL,
-    people integer DEFAULT 0 NOT NULL
-);
 
 CREATE TABLE public.petition_messages (
     id bigint NOT NULL,
@@ -78,9 +71,6 @@ ALTER TABLE public.relations ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     CACHE 1
 );
 
-ALTER TABLE ONLY public.cell_rotations
-    ADD CONSTRAINT cell_rotations_pkey PRIMARY KEY (week_at);
-
 ALTER TABLE ONLY public.petition_messages
     ADD CONSTRAINT petition_messages_pkey PRIMARY KEY (id);
 
@@ -108,8 +98,6 @@ ALTER TABLE ONLY public.petitions
 ALTER TABLE ONLY public.relations
     ADD CONSTRAINT relations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-ALTER TABLE public.cell_rotations ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE public.petition_messages ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.petitions ENABLE ROW LEVEL SECURITY;
@@ -117,45 +105,6 @@ ALTER TABLE public.petitions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.relations ENABLE ROW LEVEL SECURITY;
 
 -- ════════ 함수 ════════
-
-CREATE FUNCTION app.assign_cell() RETURNS bigint
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'app'
-    AS $$
-declare
-  v_id    bigint;
-  v_block smallint;
-  v_room  smallint;
-begin
-  -- 1) 정원이 남은 방 중 인원이 가장 적은 곳. 동률이면 동·호실이 앞선 쪽.
-  select c.id into v_id
-    from public.cells c
-    left join public.profiles p on p.cell_id = c.id
-   group by c.id, c.block, c.room
-  having count(p.id) < app.cell_capacity()
-   order by count(p.id), c.block, c.room
-   limit 1;
-
-  if found then return v_id; end if;
-
-  -- 2) 전부 찼으면 새 방. 아직 안 쓴 실을 먼저, 그 다음 안 쓴 동을 우선한다.
-  select b.n, r.n into v_block, v_room
-    from generate_series(1, 9)  as b(n)
-   cross join generate_series(1, 11) as r(n)
-   where not exists (select 1 from public.cells c
-                      where c.block = b.n and c.room = r.n)
-   order by (exists (select 1 from public.cells c where c.room  = r.n)),
-            (exists (select 1 from public.cells c where c.block = b.n)),
-            random()
-   limit 1;
-
-  -- 99개(9×11) 조합이 전부 차 있으면 더 만들 수 없다.
-  if not found then raise exception 'CELLS_FULL'; end if;
-
-  insert into public.cells (block, room) values (v_block, v_room) returning id into v_id;
-  return v_id;
-end;
-$$;
 
 CREATE FUNCTION app.can_read_petition_photo(p_name text) RETURNS boolean
     LANGUAGE plpgsql SECURITY DEFINER
@@ -177,104 +126,6 @@ begin
      where m.image_path = p_name and p.user_id = v_uid
   );
 end;
-$$;
-
-CREATE FUNCTION app.cell_capacity() RETURNS integer
-    LANGUAGE sql IMMUTABLE
-    AS $$ select 3 $$;
-
-CREATE FUNCTION app.cell_label(p_block smallint, p_room smallint) RETURNS text
-    LANGUAGE sql IMMUTABLE
-    AS $$
-  select format('%s동 %s실', p_block, lpad(p_room::text, 2, '0'))
-$$;
-
-CREATE FUNCTION app.cell_rotate() RETURNS integer
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'app'
-    AS $$
-declare
-  v_week   timestamptz := app.cell_week_kst();
-  v_people integer;
-  v_rooms  integer;
-  v_blocks smallint[];
-  v_slots  smallint[];
-  v_ids    bigint[] := '{}';
-  v_pairs  text[]   := '{}';
-  v_block  smallint;
-  v_room   smallint;
-  v_id     bigint;
-  i        integer;
-  j        integer;
-begin
-  -- 이번 주차를 선점한다. 행이 안 들어갔으면 누군가 이미 돌린 것이므로 끝.
-  -- (동시에 두 번 불려도 한쪽만 통과하는 원자적 잠금 역할을 겸한다)
-  insert into public.cell_rotations (week_at) values (v_week)
-  on conflict (week_at) do nothing;
-  if not found then return 0; end if;
-
-  select count(*) into v_people from public.profiles where not hidden;
-  v_rooms := greatest(1, ceil(v_people::numeric / app.cell_capacity())::integer);
-
-  -- 동과 실을 따로 섞어 같은 자리끼리 짝짓는다. 두 배열이 서로 독립이어야
-  -- 배치도를 동 순으로 늘어놓아도 실이 흩어진 채로 남는다("1동 03실, 2동 11실").
-  -- 한 번만 섞어 돌려 쓰거나 실을 동에서 파생시키면 이 성질이 조용히 깨진다.
-  v_blocks := app.pick_shuffled(1, 9,  v_rooms);
-  v_slots  := app.pick_shuffled(1, 11, v_rooms);
-
-  for i in 1..v_rooms loop
-    v_block := v_blocks[i];
-    v_room  := v_slots[i];
-
-    -- 같은 (동,실) 짝이 이번 주 목록에 이미 있으면 동을 한 칸씩 밀어 빈 짝을
-    -- 찾는다. 방이 11개 이하면 실이 전부 유일해서 이 루프는 돌지 않는다.
-    j := 0;
-    while j < 9 and format('%s:%s', v_block, v_room) = any(v_pairs) loop
-      v_block := (v_block % 9 + 1)::smallint;
-      j := j + 1;
-    end loop;
-    v_pairs := v_pairs || format('%s:%s', v_block, v_room);
-
-    -- 지난주에 쓰던 이름표를 다시 뽑았을 수도 있으므로 insert 후 다시 읽는다.
-    insert into public.cells (block, room) values (v_block, v_room)
-    on conflict (block, room) do nothing;
-
-    select c.id into v_id
-      from public.cells c where c.block = v_block and c.room = v_room;
-
-    v_ids := v_ids || v_id;
-  end loop;
-
-  -- 사람을 무작위로 줄 세워 정원(3명)씩 끊어 넣는다.
-  with ordered as (
-    select pr.id,
-           (((row_number() over (order by random())) - 1) / app.cell_capacity())::integer as idx
-      from public.profiles pr
-     where not pr.hidden
-  )
-  update public.profiles p
-     set cell_id = v_ids[o.idx + 1]
-    from ordered o
-   where p.id = o.id;
-
-  -- 아무도 없는 옛 이름표를 치운다. 이걸 빼면 cells 에 지난주 방이 계속 쌓여
-  -- 동·실 조합이 금세 바닥난다.
-  delete from public.cells c
-   where not exists (select 1 from public.profiles p where p.cell_id = c.id);
-
-  update public.cell_rotations
-     set rooms = v_rooms, people = v_people
-   where week_at = v_week;
-
-  return v_rooms;
-end;
-$$;
-
-CREATE FUNCTION app.cell_week_kst() RETURNS timestamp with time zone
-    LANGUAGE sql STABLE
-    AS $$
-  select (date_trunc('week', timezone('Asia/Seoul', now()) - interval '6 hours')
-          + interval '6 hours') at time zone 'Asia/Seoul'
 $$;
 
 CREATE FUNCTION app.is_petition_admin() RETURNS boolean
@@ -312,9 +163,6 @@ begin
            'hp',          p.hp,
            'hp_max',      app.hp_max(),
            'in_ward',     (p.ward_until is not null),
-           'cell_id',     p.cell_id,
-           'cell',        (select app.cell_label(c.block, c.room)
-                              from public.cells c where c.id = p.cell_id),
            'status_message', p.status_message,
            'age',         p.age,
            'height_cm',   p.height_cm,
@@ -503,7 +351,6 @@ begin
   select username, is_admin into v_name, v_admin
     from public.profiles where id = v_uid;
 
-
   delete from public.relations
    where id = p_id
      and (
@@ -651,18 +498,8 @@ $$;
 
 -- ════════ 권한 ════════
 
-REVOKE ALL ON FUNCTION app.assign_cell() FROM PUBLIC;
-
 REVOKE ALL ON FUNCTION app.can_read_petition_photo(p_name text) FROM PUBLIC;
 GRANT ALL ON FUNCTION app.can_read_petition_photo(p_name text) TO authenticated;
-
-REVOKE ALL ON FUNCTION app.cell_capacity() FROM PUBLIC;
-
-REVOKE ALL ON FUNCTION app.cell_label(p_block smallint, p_room smallint) FROM PUBLIC;
-
-REVOKE ALL ON FUNCTION app.cell_rotate() FROM PUBLIC;
-
-REVOKE ALL ON FUNCTION app.cell_week_kst() FROM PUBLIC;
 
 REVOKE ALL ON FUNCTION app.is_petition_admin() FROM PUBLIC;
 GRANT ALL ON FUNCTION app.is_petition_admin() TO authenticated;
@@ -716,10 +553,6 @@ REVOKE ALL ON FUNCTION public.set_profile_details(p_status_message text, p_age i
 GRANT ALL ON FUNCTION public.set_profile_details(p_status_message text, p_age integer, p_height_cm numeric, p_weight_kg numeric, p_bio text) TO anon;
 GRANT ALL ON FUNCTION public.set_profile_details(p_status_message text, p_age integer, p_height_cm numeric, p_weight_kg numeric, p_bio text) TO authenticated;
 GRANT ALL ON FUNCTION public.set_profile_details(p_status_message text, p_age integer, p_height_cm numeric, p_weight_kg numeric, p_bio text) TO service_role;
-
-GRANT ALL ON TABLE public.cell_rotations TO anon;
-GRANT ALL ON TABLE public.cell_rotations TO authenticated;
-GRANT ALL ON TABLE public.cell_rotations TO service_role;
 
 GRANT ALL ON TABLE public.petition_messages TO anon;
 GRANT ALL ON TABLE public.petition_messages TO authenticated;

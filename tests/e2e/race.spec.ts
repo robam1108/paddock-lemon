@@ -28,7 +28,7 @@ function scheduleRace(no: number): string {
 
 /** 경마장을 열고 1번 말 단승을 최소 금액으로 산 뒤, 발주를 당겨 성적표가 뜰 때까지 본다. */
 async function betAndWatch(page: Page, raceId: string) {
-  await page.getByRole("button", { name: "Arena", exact: true }).click();
+  await page.getByRole("button", { name: "아레나", exact: true }).click();
   await page.getByRole("button", { name: "경마장", exact: true }).click();
 
   // 가장 이른 경주(방금 편성한 것)가 기본으로 열린다.
@@ -83,4 +83,30 @@ test("게스트: 로그인 없이 체험 → 경마 1경주를 끝까지", async
   // 게스트 계정은 테스트가 끝나면 바로 지운다(평소에는 cron 이 기한 뒤에 지운다).
   psql(`delete from auth.users where is_anonymous and id in
           (select user_id from public.race_bets where race_id = ${raceId})`);
+});
+
+test("게스트: 연습 경주 편성 → 베팅 → 지금 발주 → 실황과 성적", async ({ page }) => {
+  const startedAt = psql(`select now()`);
+
+  await page.goto("/login");
+  await page.getByRole("button", { name: "로그인 없이 체험하기" }).click();
+  await expect(page).toHaveURL(/\/play/);
+
+  await page.getByRole("button", { name: "아레나", exact: true }).click();
+  await page.getByRole("button", { name: "경마장", exact: true }).click();
+  await page.getByRole("button", { name: "연습 경주 편성" }).click();
+  await expect(page.getByText(/^연습 경주 · \d+m$/)).toBeVisible({ timeout: 30_000 });
+
+  const firstHorse = page.locator('[role="button"][aria-pressed]').first();
+  await firstHorse.click();
+  await page.getByRole("button", { name: "마권 구매" }).click();
+  await expect(page.getByText(/단승 1 · \d+코인 베팅했습니다/)).toBeVisible();
+
+  await page.getByRole("button", { name: "지금 발주" }).click();
+  await expect(page.getByText("성적", { exact: true })).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText(/^(가상 지급 \+\d+|낙첨)$/)).toBeVisible();
+
+  // 연습 경주를 편성한 게스트를 지운다(경주 · 마권은 cascade 로 함께 지워진다).
+  psql(`delete from auth.users where is_anonymous and id in
+          (select created_by from public.races where is_test and created_at >= '${startedAt}')`);
 });

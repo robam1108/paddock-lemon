@@ -361,6 +361,10 @@ CREATE FUNCTION app.race_post_hours() RETURNS integer[]
     LANGUAGE sql IMMUTABLE
     AS $$ select array[10, 22] $$;
 
+CREATE FUNCTION app.race_practice_gap() RETURNS interval
+    LANGUAGE sql IMMUTABLE
+    AS $$ select interval '20 seconds' $$;
+
 CREATE FUNCTION app.race_price(p double precision) RETURNS numeric
     LANGUAGE sql IMMUTABLE
     AS $$
@@ -571,6 +575,60 @@ CREATE FUNCTION app.race_take() RETURNS double precision
     LANGUAGE sql IMMUTABLE
     AS $$ select 0.20::double precision $$;
 
+-- 테스트(연습) 경주 편성. 정식 경주와 같은 출전표 · 배당 계산을 쓰고, 편성한 사람에게만 보인다.
+-- 정산은 race_settle 이 하되 is_test 라 코인 · 원장 · 피드를 건드리지 않는다.
+CREATE FUNCTION app.race_test_create(p_uid uuid, p_opts jsonb) RETURNS bigint
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'app'
+    AS $$
+declare
+  v_ent   smallint[];
+  v_cond  smallint[] := '{}';
+  v_wd    smallint[] := '{}';
+  v_dist  integer;
+  v_track smallint;
+  v_delay integer;
+  i       integer;
+begin
+  p_opts := coalesce(p_opts, '{}'::jsonb);
+
+  delete from public.races
+   where is_test and created_by = p_uid
+     and (status = 'open' or created_at < now() - interval '1 day');
+
+  v_ent  := app.pick_shuffled(1, 20, app.race_field());
+  v_dist := coalesce((p_opts ->> 'distance')::integer,
+                     (app.race_distances())[1 + floor(random() * array_length(app.race_distances(), 1))::integer]);
+  if not v_dist = any (app.race_distances()) then raise exception 'INVALID_CHOICE'; end if;
+  v_track := coalesce((p_opts ->> 'track')::smallint, floor(random() * 4)::smallint);
+  if v_track not between 0 and 3 then raise exception 'INVALID_CHOICE'; end if;
+  v_delay := least(3600, greatest(10, coalesce((p_opts ->> 'delay_sec')::integer, 120)));
+  for i in 1..array_length(v_ent, 1) loop
+    v_cond := v_cond || app.race_roll_cond();
+    v_wd   := v_wd || app.race_wdelta(v_cond[i]);
+  end loop;
+  return app.race_create(app.today_kst(), 0::smallint, true, now() + make_interval(secs => v_delay),
+                         v_ent, v_dist, v_track, v_cond, v_wd, p_uid);
+end;
+$$;
+
+-- 열린 테스트(연습) 경주를 지금 발주하고 바로 결과를 낸다.
+CREATE FUNCTION app.race_test_start(p_uid uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'app'
+    AS $$
+declare
+  v_id bigint;
+begin
+  select id into v_id from public.races
+   where is_test and created_by = p_uid and status = 'open'
+   order by created_at desc limit 1;
+  if v_id is null then raise exception 'RACE_NOT_FOUND'; end if;
+  update public.races set post_at = now() where id = v_id;
+  perform app.race_settle(v_id);
+end;
+$$;
+
 CREATE FUNCTION app.race_tester_name() RETURNS text
     LANGUAGE sql IMMUTABLE
     AS $$ select app.hidden_name() $$;
@@ -592,45 +650,15 @@ CREATE FUNCTION public.race_admin_test(p_action text, p_opts jsonb DEFAULT '{}':
     AS $$
 declare
   v_uid   uuid := auth.uid();
-  v_id    bigint;
-  v_ent   smallint[];
-  v_cond  smallint[] := '{}';
-  v_wd    smallint[] := '{}';
-  v_dist  integer;
-  v_track smallint;
-  v_delay integer;
-  i       integer;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
   if not app.race_is_tester(v_uid) then raise exception 'NOT_ADMIN'; end if;
-  p_opts := coalesce(p_opts, '{}'::jsonb);
 
   if p_action = 'create' then
-    delete from public.races
-     where is_test and created_by = v_uid
-       and (status = 'open' or created_at < now() - interval '1 day');
-
-    v_ent  := app.pick_shuffled(1, 20, app.race_field());
-    v_dist := coalesce((p_opts ->> 'distance')::integer,
-                       (app.race_distances())[1 + floor(random() * array_length(app.race_distances(), 1))::integer]);
-    if not v_dist = any (app.race_distances()) then raise exception 'INVALID_CHOICE'; end if;
-    v_track := coalesce((p_opts ->> 'track')::smallint, floor(random() * 4)::smallint);
-    if v_track not between 0 and 3 then raise exception 'INVALID_CHOICE'; end if;
-    v_delay := least(3600, greatest(10, coalesce((p_opts ->> 'delay_sec')::integer, 120)));
-    for i in 1..array_length(v_ent, 1) loop
-      v_cond := v_cond || app.race_roll_cond();
-      v_wd   := v_wd || app.race_wdelta(v_cond[i]);
-    end loop;
-    perform app.race_create(app.today_kst(), 0::smallint, true, now() + make_interval(secs => v_delay),
-                            v_ent, v_dist, v_track, v_cond, v_wd, v_uid);
+    perform app.race_test_create(v_uid, p_opts);
 
   elsif p_action = 'start' then
-    select id into v_id from public.races
-     where is_test and created_by = v_uid and status = 'open'
-     order by created_at desc limit 1;
-    if v_id is null then raise exception 'RACE_NOT_FOUND'; end if;
-    update public.races set post_at = now() where id = v_id;
-    perform app.race_settle(v_id);
+    perform app.race_test_start(v_uid);
 
   elsif p_action = 'reset_tips' then
     delete from public.race_tips where user_id = v_uid;
@@ -780,13 +808,48 @@ begin
                where not r.is_test and r.status = 'done'
                order by r.post_at desc
                limit 4) x), '[]'::jsonb),
-    'test', case when v_tester then (
+    -- 본인이 편성한 연습 경주(관리자의 테스트 경주 포함). 남에게는 보이지 않는다.
+    'test', (
       select app.race_json(r, v_uid)
         from public.races r
        where r.is_test and r.created_by = v_uid
        order by r.created_at desc
-       limit 1) end
+       limit 1)
   );
+end;
+$$;
+
+-- 연습 경주 — 정식 발주(10:00 · 22:00) 밖에서도 누구나 경주를 한 번 돌려 볼 수 있다.
+-- 코인 · 에너지 · 원장 · 피드는 움직이지 않는다(race_bet · race_settle 의 is_test 분기).
+-- 편성은 배당 몬테카를로를 돌려 비싸므로 사람마다 간격을 둔다.
+CREATE FUNCTION public.race_practice(p_action text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'app'
+    AS $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
+  perform app.race_gate();
+  perform app.require_active();
+
+  if p_action = 'create' then
+    perform pg_advisory_xact_lock(hashtext('race_practice:' || v_uid::text));
+    if exists (select 1 from public.races
+                where is_test and created_by = v_uid
+                  and created_at > now() - app.race_practice_gap()) then
+      raise exception 'RACE_PRACTICE_WAIT';
+    end if;
+    perform app.race_test_create(v_uid, jsonb_build_object('delay_sec', 60));
+
+  elsif p_action = 'start' then
+    perform app.race_test_start(v_uid);
+
+  else
+    raise exception 'INVALID_CHOICE';
+  end if;
+
+  return public.race_card();
 end;
 $$;
 
@@ -881,6 +944,15 @@ REVOKE ALL ON FUNCTION app.race_settle(p_id bigint) FROM PUBLIC;
 REVOKE ALL ON FUNCTION app.race_settle_due() FROM PUBLIC;
 
 REVOKE ALL ON FUNCTION app.race_stats(p_entries smallint[]) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION app.race_test_create(p_uid uuid, p_opts jsonb) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION app.race_test_start(p_uid uuid) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.race_practice(p_action text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.race_practice(p_action text) TO anon;
+GRANT ALL ON FUNCTION public.race_practice(p_action text) TO authenticated;
+GRANT ALL ON FUNCTION public.race_practice(p_action text) TO service_role;
 
 REVOKE ALL ON FUNCTION public.race_admin_test(p_action text, p_opts jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.race_admin_test(p_action text, p_opts jsonb) TO anon;

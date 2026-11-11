@@ -8,7 +8,7 @@ export default function MonoLabel({
   className = "",
 }: {
   children: React.ReactNode;
-  /** dim = 놋쇠 라벨, low = 장식성 보조 표기 */
+  /** dim = 골드 라벨, low = 장식성 보조 표기 */
   tone?: "dim" | "low" | "mid";
   className?: string;
 }) {

@@ -14,8 +14,8 @@ import MonoLabel from "./ui/MonoLabel";
 import { usePendingSettle } from "@/hooks/usePendingSettle";
 
 /**
- * 룰렛 — 어디선가 뜯어 온 원판에 페인트를 다시 칠한 물건이다.
- * 그래서 색이 선명하지 않고, 다른 화면 톤보다 조금 탁하다.
+ * 룰렛 — 라운지 톤에 맞춘 원판. 칸은 낮은 채도의 와인 · 에스프레소 · 세이지로
+ * 칠하고, 칸 경계와 테두리는 골드 선으로 나눈다. 숫자는 아이보리.
  *
  * 하이로우와 같은 골격을 쓴다: 배당 레일 | 게임 존 | 건 코인.
  */
@@ -24,11 +24,11 @@ import { usePendingSettle } from "@/hooks/usePendingSettle";
 const seg = () => 360 / getRules().roulette.slots;
 const SPIN_MS = 4200;
 
-// 물감 색. 강조색이 아니라 원판에 칠해진 도료다.
+// 원판 도료. 값은 globals.css 의 --color-wheel-* 토큰이다.
 const SEGMENT_FILL: Record<string, string> = {
-  green: "oklch(0.40 0.050 155)",
-  red: "oklch(0.42 0.075 25)",
-  black: "oklch(0.24 0.006 210)",
+  green: "var(--color-wheel-green)",
+  red: "var(--color-wheel-red)",
+  black: "var(--color-wheel-black)",
 };
 
 function wheelGradient() {
@@ -36,7 +36,9 @@ function wheelGradient() {
     const fill = SEGMENT_FILL[rouletteColor(i)];
     return `${fill} ${i * seg()}deg ${(i + 1) * seg()}deg`;
   });
-  return `conic-gradient(${stops.join(", ")})`;
+  // 칸 경계마다 가는 골드 선을 위에 겹친다.
+  const divider = `repeating-conic-gradient(var(--color-brass-line) 0deg 0.6deg, transparent 0.6deg ${seg()}deg)`;
+  return `${divider}, conic-gradient(${stops.join(", ")})`;
 }
 
 const COLOR_LABEL: Record<string, string> = {
@@ -120,7 +122,7 @@ export default function Roulette({
               <div className="border-t-brass h-0 w-0 border-x-[8px] border-t-[14px] border-x-transparent" />
             </div>
 
-            <div className="border-line absolute inset-0 rounded-full border-2" />
+            <div className="border-brass-line absolute inset-0 rounded-full border-2" />
 
             <div
               className="roulette-wheel absolute inset-1 rounded-full"
@@ -141,7 +143,7 @@ export default function Roulette({
                     style={{ transform: `rotate(${angle}deg)` }}
                   >
                     <span
-                      className="absolute left-1/2 top-[7%] font-mono text-[11px] font-semibold text-fg-hi"
+                      className="absolute left-1/2 top-[7%] font-mono text-[11px] font-semibold text-wheel-ink"
                       style={{
                         transform: `translateX(-50%) rotate(${-angle}deg)`,
                       }}
@@ -153,7 +155,7 @@ export default function Roulette({
               })}
             </div>
 
-            <div className="border-line bg-bg-0 absolute left-1/2 top-1/2 z-10 flex h-[30%] w-[30%] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border">
+            <div className="border-brass-line bg-bg-0 absolute left-1/2 top-1/2 z-10 flex h-[30%] w-[30%] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border">
               {landed === null ? (
                 <MonoLabel tone="low">{spinning ? "회전" : "대기"}</MonoLabel>
               ) : (

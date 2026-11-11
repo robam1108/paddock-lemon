@@ -244,16 +244,6 @@ CREATE FUNCTION app.has_food(p_uid uuid) RETURNS boolean
   );
 $$;
 
-CREATE FUNCTION app.has_lighter(p_uid uuid) RETURNS boolean
-    LANGUAGE sql STABLE
-    AS $$
-  select exists (
-    select 1 from public.inventories i
-     where i.user_id = p_uid and i.qty > 0
-       and i.item_code in ('lighter_old', 'lighter_ag', 'lighter_au')
-  );
-$$;
-
 CREATE FUNCTION app.meal_backfill_days() RETURNS integer
     LANGUAGE sql IMMUTABLE
     AS $$ select 3 $$;
@@ -728,42 +718,6 @@ begin
 end;
 $$;
 
-CREATE FUNCTION public.mix_item(p_code text, p_with text) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'app'
-    AS $$
-declare
-  v_uid    uuid := auth.uid();
-  v_p      public.profiles;
-  v_to     text;
-  v_gifted boolean;
-begin
-  if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
-  perform app.require_active();
-
-  v_p := app.accrue(v_uid);
-
-  if p_code is distinct from 'milk' then raise exception 'NOT_MIXABLE'; end if;
-  v_to := case p_with when 'instant_coffee' then 'cafe_latte'
-                      when 'ice_coffee'     then 'iced_latte'
-                      when 'rooibos_tea'    then 'milk_tea' end;
-  if v_to is null then raise exception 'NOT_MIXABLE'; end if;
-
-  -- 어느 쪽이든 없으면 NOT_ENOUGH_ITEMS 로 막히고 트랜잭션째 되돌려진다.
-  perform app.take_one_item(v_uid, p_with);
-  v_gifted := app.take_one_item(v_uid, p_code);
-
-  insert into public.inventories (user_id, item_code, qty, gifted_qty)
-  values (v_uid, v_to, 1, case when v_gifted then 1 else 0 end)
-  on conflict (user_id, item_code)
-    do update set qty        = inventories.qty + excluded.qty,
-                  gifted_qty = inventories.gifted_qty + excluded.gifted_qty;
-
-  select * into v_p from public.profiles where id = v_uid;
-  return app.state_json(v_p);
-end;
-$$;
-
 CREATE FUNCTION public.radio_on(p_code text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'app'
@@ -787,41 +741,6 @@ begin
   if coalesce(v_qty, 0) < 1 then raise exception 'NOT_ENOUGH_ITEMS'; end if;
 
   perform app.flex_apply(v_uid, p_code, coalesce(v_gifted, 0) > 0);
-
-  select * into v_p from public.profiles where id = v_uid;
-  return app.state_json(v_p);
-end;
-$$;
-
-CREATE FUNCTION public.roast_item(p_code text) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'app'
-    AS $$
-declare
-  v_uid    uuid := auth.uid();
-  v_p      public.profiles;
-  v_to     text;
-  v_gifted boolean;
-begin
-  if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
-  perform app.require_active();
-
-  v_p := app.accrue(v_uid);
-
-  v_to := case p_code when 'sweet_potato_chestnut' then 'roast_potato_chestnut'
-                      when 'sweet_potato_pumpkin'  then 'roast_potato_pumpkin'
-                      when 'fish_mackerel'         then 'roast_fish_mackerel'
-                      when 'fish_horse_mackerel'   then 'roast_fish_horse_mackerel' end;
-  if v_to is null then raise exception 'NOT_ROASTABLE'; end if;
-  if not app.has_lighter(v_uid) then raise exception 'NEED_LIGHTER'; end if;
-
-  v_gifted := app.take_one_item(v_uid, p_code);
-
-  insert into public.inventories (user_id, item_code, qty, gifted_qty)
-  values (v_uid, v_to, 1, case when v_gifted then 1 else 0 end)
-  on conflict (user_id, item_code)
-    do update set qty        = inventories.qty + excluded.qty,
-                  gifted_qty = inventories.gifted_qty + excluded.gifted_qty;
 
   select * into v_p from public.profiles where id = v_uid;
   return app.state_json(v_p);
@@ -1149,20 +1068,10 @@ GRANT ALL ON FUNCTION public.gear_on(p_code text) TO anon;
 GRANT ALL ON FUNCTION public.gear_on(p_code text) TO authenticated;
 GRANT ALL ON FUNCTION public.gear_on(p_code text) TO service_role;
 
-REVOKE ALL ON FUNCTION public.mix_item(p_code text, p_with text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.mix_item(p_code text, p_with text) TO anon;
-GRANT ALL ON FUNCTION public.mix_item(p_code text, p_with text) TO authenticated;
-GRANT ALL ON FUNCTION public.mix_item(p_code text, p_with text) TO service_role;
-
 REVOKE ALL ON FUNCTION public.radio_on(p_code text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.radio_on(p_code text) TO anon;
 GRANT ALL ON FUNCTION public.radio_on(p_code text) TO authenticated;
 GRANT ALL ON FUNCTION public.radio_on(p_code text) TO service_role;
-
-REVOKE ALL ON FUNCTION public.roast_item(p_code text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.roast_item(p_code text) TO anon;
-GRANT ALL ON FUNCTION public.roast_item(p_code text) TO authenticated;
-GRANT ALL ON FUNCTION public.roast_item(p_code text) TO service_role;
 
 REVOKE ALL ON FUNCTION public.sell_item(p_code text, p_qty integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.sell_item(p_code text, p_qty integer) TO anon;

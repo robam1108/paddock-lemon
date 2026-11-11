@@ -1,8 +1,7 @@
 "use client";
 
-import { CAT_FAVORITE_LINE, healthNote } from "@/lib/copy";
+import { healthNote } from "@/lib/copy";
 import { SITE_NAME } from "@/lib/site";
-import { identityOf } from "@/lib/identity";
 import MonoLabel from "../ui/MonoLabel";
 import Panel from "../ui/Panel";
 import type { RelationRow } from "./shared";
@@ -43,10 +42,8 @@ function Cell({
  * 버튼이 저절로 빠진다.
  */
 export default function ProfileCard({
-  no,
   username,
   avatarUrl,
-  cell,
   status_message,
   age,
   heightCm,
@@ -59,12 +56,9 @@ export default function ProfileCard({
   notes,
   photo,
   footer,
-  catLoved,
 }: {
-  no: string;
   username: string;
   avatarUrl: string | null;
-  cell: string | null;
   status_message: string | null;
   age: number | null;
   heightCm: number | null;
@@ -84,10 +78,8 @@ export default function ProfileCard({
   photo?: React.ReactNode;
   /** 내 프로필일 때만: 소개 칸 아래 우측에 붙는 '수정' 버튼. */
   footer?: React.ReactNode;
-  /** 떠돌이 고양이에게 가장 사랑받는 사람이면 상태 맨 아래에 한 줄을 더한다. */
-  catLoved?: boolean;
 }) {
-  const flexLines = catLoved ? [...flex, { text: CAT_FAVORITE_LINE }] : flex;
+  const flexLines = flex;
   const heightWeight =
     heightCm != null && weightKg != null ? `${heightCm} / ${weightKg}` : "-";
   const extraNote = notes && notes !== "없음" ? notes : null;
@@ -114,15 +106,11 @@ export default function ProfileCard({
           </div>
         )}
 
-        <div className="flex flex-col gap-1">
-          <span className="num-lg text-fg-hi tabular-nums">{no}</span>
-          <span className="title-19 text-fg-hi truncate">{username}</span>
-        </div>
+        <span className="title-19 text-fg-hi truncate">{username}</span>
 
-        {/* 상태 메시지 → 룸 */}
+        {/* 상태 메시지 */}
         <div className="border-line-soft mt-auto flex flex-col gap-1 border-t pt-3">
           <span className="mono-13 text-fg-mid truncate">{status_message || "상태 메시지 없음"}</span>
-          {cell && <span className="mono-13 text-fg-mid">룸 {cell}</span>}
         </div>
       </Panel>
 
@@ -139,7 +127,7 @@ export default function ProfileCard({
             )}
           </Cell>
           <Cell label="키 / 체중">{heightWeight}</Cell>
-          <Cell label="컨디션" quiet>
+          <Cell label="컨디션" wide quiet>
             <span className="body-15 text-fg">{healthNote(hp, hpMax)}</span>
             {extraNote && (
               <span className="body-15 text-fg-low mt-0.5 block">
@@ -180,7 +168,7 @@ export default function ProfileCard({
                 {relations.map((r) => (
                   <li key={r.id} className="break-words">
                     <span className="text-fg-mid">
-                      {identityOf(r.other).no} {r.other}
+                      {r.other}
                     </span>
                     <span className="text-fg-low"> · </span>
                     {r.body}

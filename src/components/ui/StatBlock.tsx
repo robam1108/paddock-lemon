@@ -20,7 +20,7 @@ export default function StatBlock({
   suffix?: string;
   /** lg = 보유 코인(34), md = 남은 판·에너지·적립금(26) */
   size?: "lg" | "md";
-  /** brass = 코인처럼 놋쇠로 읽히는 값, fill = 적립금 블록(놋쇠 면) */
+  /** brass = 코인처럼 골드로 읽히는 값, fill = 적립금 블록(골드 면) */
   tone?: "plain" | "brass" | "fill";
   note?: string;
   className?: string;

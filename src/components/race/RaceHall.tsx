@@ -26,7 +26,7 @@ const DISTANCES = [1000, 1200, 1400, 1600, 1800, 2000];
 const wd = (d: number) => (d > 0 ? `+${d}` : String(d));
 
 /**
- * Arena › 경마장.
+ * 아레나 › 경마장.
  *
  * 출전표는 발주 전까지 배당만 보여준다 — 결과는 서버에도 아직 없다. 열려 있던
  * 경주가 끝난 것을 폴링이 알아채면(발주 2분 전부터 3초 간격) 그 자리에서
@@ -195,6 +195,29 @@ export default function RaceHall({
     }
   };
 
+  // 연습 경주 — 관리자가 아니어도 시각과 무관하게 한 경주를 돌려 볼 수 있다.
+  const practice = async (action: "create" | "start") => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const { data, error: e } = await supabase.rpc("race_practice", { p_action: action });
+      if (e || !data) {
+        setError(toKoreanError(e?.message));
+        return;
+      }
+      const c = data as RaceCard;
+      if (c.test) setSelId(c.test.id);
+      if (action === "create") setPlay(null);
+      apply(c);
+    } catch (e) {
+      setError(toKoreanError(e instanceof Error ? e.message : undefined));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!card) {
     return (
       <p className="mono-13 border-line-soft border bg-bg-1 px-3 py-6 text-center text-fg-low">
@@ -223,6 +246,33 @@ export default function RaceHall({
           매일 10:00 · 22:00 발주 · 8두 출전 · 발주 시각에 발매 마감
         </span>
       </div>
+
+      {/* 연습 경주 — 정식 발주 시각이 아니어도 실황을 볼 수 있게 */}
+      {!card.tester && (
+        <div className="border-brass-line flex flex-col gap-2 border border-dashed bg-bg-1 p-3 tab:flex-row tab:items-center tab:justify-between">
+          <p className="mono-13 text-fg-mid break-keep">
+            연습 경주 · 코인과 에너지가 들지 않습니다. 편성 1분 뒤 발주하며, 바로 발주할 수도 있습니다.
+          </p>
+          <div className="grid shrink-0 grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => practice("create")}
+              className="state-fade mono-13 border-brass-line min-h-10 border bg-brass-fill px-3 py-1.5 leading-tight break-keep text-fg-hi disabled:text-fg-low"
+            >
+              연습 경주 편성
+            </button>
+            <button
+              type="button"
+              disabled={busy || card.test?.status !== "open"}
+              onClick={() => practice("start")}
+              className="state-fade mono-13 border-line min-h-10 border bg-surface px-3 py-1.5 leading-tight break-keep text-fg disabled:text-fg-low"
+            >
+              지금 발주
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 관리자 사전 확인 — 시각과 무관한 테스트 경주 */}
       {card.tester && (

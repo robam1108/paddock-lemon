@@ -31,8 +31,7 @@ declare
   v_p public.profiles;
 begin
   select * into v_p from public.profiles where id = p_uid;
-  return case when v_p.stake_boost_until > now() then v_p.stake_boost else 0 end
-       + app.cat_bless_charge(p_uid);
+  return case when v_p.stake_boost_until > now() then v_p.stake_boost else 0 end;
 end;
 $$;
 

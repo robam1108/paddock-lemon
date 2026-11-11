@@ -106,7 +106,7 @@ export default function BetSlip({
 
       <p className="mono-13 text-fg-low">
         이 경주 {spent} / {maxBet}코인 · 한 장 최소 {minBet}
-        {race.is_test ? " · 테스트 경주라 코인·에너지가 움직이지 않습니다" : " · 한 장마다 에너지 1"}
+        {race.is_test ? " · 연습 경주라 코인·에너지가 움직이지 않습니다" : " · 한 장마다 에너지 1"}
         {noHp ? " · 에너지가 부족합니다" : ""}
         {!canBet && !race.is_test && room >= minBet ? " · 코인이 부족합니다" : ""}
         {room < minBet ? " · 이 경주 한도를 모두 썼습니다" : ""}

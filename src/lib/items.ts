@@ -3,7 +3,6 @@
 import { GEAR } from "./gear";
 import { RADIO } from "./radio";
 import { getRules } from "./server-rules";
-import { CHURU } from "./types";
 
 /* ---------------- 아이템 ---------------- */
 export type ItemGrade =
@@ -73,11 +72,11 @@ export type InventoryItem = ItemDef & {
 };
 
 export const ITEM_GRADE_STYLE: Record<ItemGrade, string> = {
-  common: "bg-white/10 text-white/60",
-  uncommon: "bg-emerald-500/20 text-emerald-300",
-  rare: "bg-sky-500/20 text-sky-300",
-  epic: "bg-violet-500/20 text-violet-300",
-  legendary: "bg-gold-500/20 text-gold-400",
+  common: "bg-fg-low/10 text-fg-mid",
+  uncommon: "bg-emerald-600/12 text-emerald-800",
+  rare: "bg-sky-600/12 text-sky-800",
+  epic: "bg-violet-600/12 text-violet-800",
+  legendary: "bg-brass/15 text-brass",
 };
 
 export const ITEM_GRADE_LABEL: Record<ItemGrade, string> = {
@@ -97,7 +96,6 @@ export const ITEM_KIND_LABEL: Record<string, string> = {
   treat: "간식",
   tool: "도구",
   charm: "부적",
-  gift: "선물",
 };
 
 /* ---------------- 네잎클로버 (부적) ----------------
@@ -111,39 +109,6 @@ export type LuckEffect = {
   stake: number;
   ends_at: string;
 };
-
-/** 불을 붙일 수 있는 물건(굽기에 쓴다). 장착(flex_equip)해도 인벤에 그대로 남으므로
- *  보유 수량만 보면 장착 여부와 무관하게 판정된다. */
-export const LIGHTER_CODES = ["lighter_old", "lighter_ag", "lighter_au"];
-
-/** 라이터로 구울 수 있는 것 → 구운 것. 서버 public.roast_item 과 맞춘다. */
-export const ROAST_TO: Record<string, string> = {
-  sweet_potato_chestnut: "roast_potato_chestnut",
-  sweet_potato_pumpkin: "roast_potato_pumpkin",
-  fish_mackerel: "roast_fish_mackerel",
-  fish_horse_mackerel: "roast_fish_horse_mackerel",
-};
-
-/** 목장 우유. 소지품에서 아래 음료와 섞을 수 있다(서버 public.mix_item). */
-export const MILK = "milk";
-
-/** 우유에 섞을 수 있는 것 → 섞은 것. 서버 public.mix_item 과 맞춘다. */
-export const MIX_TO: Record<string, string> = {
-  instant_coffee: "cafe_latte",
-  ice_coffee: "iced_latte",
-  rooibos_tea: "milk_tea",
-};
-
-/** 섞기 창에서 결과를 아직 안 가졌을 때 보여 줄 이름(서버 아이템 카탈로그와 같게). */
-export const MIX_NAME: Record<string, string> = {
-  instant_coffee: "카페라떼",
-  ice_coffee: "아이스 카페라떼",
-  rooibos_tea: "밀크티",
-};
-
-export function hasLighter(items: { code: string; qty: number }[]): boolean {
-  return items.some((it) => LIGHTER_CODES.includes(it.code) && it.qty > 0);
-}
 
 type Effectish = {
   code?: string;
@@ -161,8 +126,6 @@ type Effectish = {
 /** 아이템 효과를 한 줄로 */
 export function itemEffect(it: Effectish): string {
   if (it.code === RADIO) return "켜면 노래가 나온다";
-  if (it.code === CHURU) return "고양이 간식";
-  if (it.kind === "gift") return "고양이의 선물";
   if (it.kind === "charm") return `판돈 +${getRules().clover_stake} · ${it.flex_hours ?? 6}시간`;
   const parts: string[] = [];
   if (it.heal > 0) parts.push(`에너지 +${it.heal}`);

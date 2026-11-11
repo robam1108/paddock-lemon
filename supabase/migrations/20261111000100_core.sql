@@ -12,7 +12,6 @@ CREATE FUNCTION app.today_kst() RETURNS date
     LANGUAGE sql STABLE
     AS $$ select (timezone('Asia/Seoul', now()))::date $$;
 
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -52,11 +51,6 @@ CREATE TABLE public.profiles (
     hl_wage integer DEFAULT 0 NOT NULL,
     stake_boost integer DEFAULT 0 NOT NULL,
     stake_boost_until timestamp with time zone,
-    cell_id bigint,
-    cat_boost integer DEFAULT 0 NOT NULL,
-    cat_boost_left integer DEFAULT 0 NOT NULL,
-    cat_search_boost boolean DEFAULT false NOT NULL,
-    cat_labor_good boolean DEFAULT false NOT NULL,
     CONSTRAINT coins_non_negative CHECK ((coins >= 0)),
     CONSTRAINT hl_card_range CHECK (((hl_card >= 1) AND (hl_card <= 13))),
     CONSTRAINT profiles_age_check CHECK (((age IS NULL) OR ((age >= 1) AND (age <= 120)))),
@@ -65,21 +59,6 @@ CREATE TABLE public.profiles (
     CONSTRAINT profiles_height_check CHECK (((height_cm IS NULL) OR ((height_cm >= (50)::numeric) AND (height_cm <= (250)::numeric)))),
     CONSTRAINT profiles_hp_check CHECK (((hp >= 0) AND (hp <= 100))),
     CONSTRAINT profiles_weight_check CHECK (((weight_kg IS NULL) OR ((weight_kg >= (20)::numeric) AND (weight_kg <= (300)::numeric))))
-);
-
-CREATE TABLE public.cells (
-    id bigint NOT NULL,
-    block smallint NOT NULL,
-    room smallint NOT NULL
-);
-
-ALTER TABLE public.cells ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME public.cells_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
 );
 
 CREATE TABLE public.game_rounds (
@@ -125,12 +104,6 @@ ALTER TABLE public.ledger ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     CACHE 1
 );
 
-ALTER TABLE ONLY public.cells
-    ADD CONSTRAINT cells_block_room_key UNIQUE (block, room);
-
-ALTER TABLE ONLY public.cells
-    ADD CONSTRAINT cells_pkey PRIMARY KEY (id);
-
 ALTER TABLE ONLY public.game_rounds
     ADD CONSTRAINT game_rounds_pkey PRIMARY KEY (id);
 
@@ -156,12 +129,7 @@ ALTER TABLE ONLY public.ledger
     ADD CONSTRAINT ledger_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.profiles
-    ADD CONSTRAINT profiles_cell_id_fkey FOREIGN KEY (cell_id) REFERENCES public.cells(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.profiles
     ADD CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-ALTER TABLE public.cells ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.game_rounds ENABLE ROW LEVEL SECURITY;
 
@@ -434,7 +402,7 @@ CREATE FUNCTION app.hp_status(p_hp integer) RETURNS text
 
 CREATE FUNCTION app.initial_coins() RETURNS integer
     LANGUAGE sql IMMUTABLE
-    AS $$ select 20 $$;
+    AS $$ select 50 $$;
 
 CREATE FUNCTION app.is_hidden_name(p_username text) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
@@ -674,9 +642,6 @@ CREATE FUNCTION app.state_json(p public.profiles) RETURNS jsonb
     'suspended_left',   case when p.suspended_until is null then 0
                               else greatest(0, extract(epoch from (p.suspended_until - now()))::int) end,
     'suspend_reason',   p.suspend_reason,
-    'cell_id',      p.cell_id,
-    'cell',         (select app.cell_label(c.block, c.room)
-                       from public.cells c where c.id = p.cell_id),
     'status_message', p.status_message,
     'age',          p.age,
     'height_cm',    p.height_cm,
@@ -771,7 +736,7 @@ declare
   v_hidden boolean := (v_name = app.hidden_name());
 begin
   insert into public.profiles
-    (id, username, coins, plays_used, last_reset, hl_card, hp, hp_at, meals_at, cell_id, hidden)
+    (id, username, coins, plays_used, last_reset, hl_card, hp, hp_at, meals_at, hidden)
   values (
     new.id,
     v_name,
@@ -782,7 +747,6 @@ begin
     app.hp_max(),
     now(),
     now(),
-    case when v_hidden then null else app.assign_cell() end,
     v_hidden
   )
   on conflict (id) do nothing;
@@ -858,14 +822,6 @@ GRANT ALL ON FUNCTION public.handle_new_user() TO service_role;
 REVOKE ALL ON FUNCTION public.username_to_email(p_username text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.username_to_email(p_username text) TO service_role;
 REVOKE ALL ON FUNCTION app.username_valid(p_username text) FROM PUBLIC;
-
-GRANT ALL ON TABLE public.cells TO anon;
-GRANT ALL ON TABLE public.cells TO authenticated;
-GRANT ALL ON TABLE public.cells TO service_role;
-
-GRANT ALL ON SEQUENCE public.cells_id_seq TO anon;
-GRANT ALL ON SEQUENCE public.cells_id_seq TO authenticated;
-GRANT ALL ON SEQUENCE public.cells_id_seq TO service_role;
 
 GRANT ALL ON TABLE public.game_rounds TO anon;
 GRANT ALL ON TABLE public.game_rounds TO authenticated;

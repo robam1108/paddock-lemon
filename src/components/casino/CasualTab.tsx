@@ -9,7 +9,7 @@ import HighLow from "../HighLow";
 import Keno from "../Keno";
 import TabRail from "../ui/TabRail";
 
-/** Casual 구역 본문 — 게임 탭, 결과 한 줄, 서버 판정 4게임. */
+/** 캐주얼 구역 본문 — 게임 탭, 결과 한 줄, 서버 판정 4게임. */
 export default function CasualTab({
   state,
   game,

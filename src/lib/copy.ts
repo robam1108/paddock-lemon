@@ -10,22 +10,16 @@ import {
   CARD_LABELS,
   formatDaysLeft,
   formatDuration,
-  MIX_TO,
-  ROAST_TO,
   type InventoryItem,
-  type LaborResult,
   type PlayerState,
-  type SearchResult,
 } from "./game";
 import { INSTRUMENTS } from "./gear";
 import { getRules } from "./server-rules";
-import { LABOR_JOBS, SEARCH_FINDS, searchTier } from "./labor";
 import { eulReul, iGa, waGwa } from "./josa";
 
 /* ── 공통 라벨 ─────────────────────────────────────────────── */
 
 export const LABEL = {
-  no: "번호",
   health: "에너지",
   coins: "보유 코인",
   ration: "오늘 남은 판",
@@ -39,11 +33,10 @@ export const LABEL = {
   stage: "단계",
   current: "현재 카드",
   next: "다음 카드",
-  rules: "규칙",
   feed: "실시간 결과",
   rank: "코인 순위",
   petitions: "피드백",
-  guide: "안내",
+  guide: "소개",
 } as const;
 
 /** 피드백 안내 — 게임 판정 이의와는 다른 창구라는 것만 밝힌다. */
@@ -149,28 +142,17 @@ export function blockedState(
     return {
       why: "quota",
       line: "오늘 플레이 횟수를 모두 썼습니다. 자정(KST)에 다시 채워집니다.",
-      sub: `오늘 남은 판 0/${state.play_limit} · Arena 대전은 횟수를 쓰지 않습니다`,
+      sub: `오늘 남은 판 0/${state.play_limit} · 아레나 대전은 횟수를 쓰지 않습니다`,
     };
   }
   if (broke) {
     return {
       why: "broke",
       line: "코인이 없습니다. 코인은 자동으로 충전되지 않습니다.",
-      sub: "미션·탐험으로 코인을 모을 수 있습니다",
+      sub: "아이템을 팔거나 다른 플레이어와 거래해 코인을 모을 수 있습니다",
     };
   }
   return null;
-}
-
-/**
- * 미션·탐험은 게임이 아니라서 "게임을 할 수 없다"는 문구가 어색하다. 이 두
- * 화면은 항상 blockedState(state, false, false) 로만 부르므로 quota/broke
- * 는 여기 오지 않는다. sub(남은 시간)는 그대로 쓴다.
- */
-export function nonGameBlockedLine(blocked: Blocked): string {
-  if (blocked.why === "suspended") return "이용 정지 중입니다. 해제될 때까지 할 수 없습니다.";
-  if (blocked.why === "ward") return "휴식 중입니다. 휴식이 끝나면 할 수 있습니다.";
-  return blocked.line;
 }
 
 /* ── 기호를 글자로 ──────────────────────────────────────────────
@@ -197,34 +179,6 @@ export const GAME_CODE: Record<string, string> = {
   race: "경마",
 };
 
-/* ── 일일 미션 · 탐험 ──────────────────────────────────────── */
-
-/** 미션 결과. 왜 그만큼이었는지(band) 먼저, 실제 액수는 그 아래. */
-export function laborLines(r: LaborResult): string[] {
-  const lines = [
-    (LABOR_JOBS[r.code]?.lines[r.band] ?? "미션을 마쳤습니다.").replace(
-      "{who}",
-      r.visitor ?? "누군가",
-    ),
-    `보상 ${r.pay}코인 · 에너지 -${r.hp_cut}`,
-  ];
-  if (r.item) {
-    const where =
-      r.code === "fishing" ? "그물에 걸린" : r.code === "pens" ? "목장 구석에서" : "밭 귀퉁이에서";
-    lines.push(`${where} ${r.item.name}${eulReul(r.item.name)} 챙겼습니다.`);
-  }
-  return lines;
-}
-
-/** 탐험 결과. 장소 × 값어치로 고른 한 문장 먼저, 둘째 줄은 얻은 물건 또는 "빈손". */
-export function searchLines(r: SearchResult): string[] {
-  const tier = searchTier(r);
-  return [
-    SEARCH_FINDS[r.place]?.[tier] ?? "무언가를 찾았습니다.",
-    r.item ? `${r.item.name} · 에너지 -${r.hp_cut}` : `빈손 · 에너지 -${r.hp_cut}`,
-  ];
-}
-
 /** 판이 끝난 뒤 남기는 한 줄. */
 export function settleLine(net: number, payout: number): string {
   if (net > 0) return `${payout} 코인 수령 · 순이익 +${net}`;
@@ -247,7 +201,6 @@ export function bonusTail(bonus: number | undefined, luckEndsAt: string | undefi
 
 /* ── 소지품 사용 ────────────────────────────────────────────── */
 
-
 export type UsedVia =
   | "use"
   | "flex_use"
@@ -255,9 +208,7 @@ export type UsedVia =
   | "flex_unequip"
   | "together"
   | "gear_on"
-  | "gear_off"
-  | "roast"
-  | "mix";
+  | "gear_off";
 
 /**
  * 소지품에서 쓰거나 착용한 뒤 팝업에 띄울 문장. before 는 누르기 직전 상태,
@@ -284,17 +235,6 @@ export function usedItemLines(
     head = INSTRUMENTS.has(item.code) ? `${obj} 꺼내 연주를 시작했습니다.` : `${obj} 들고 운동을 시작했습니다.`;
   else if (via === "gear_off")
     head = INSTRUMENTS.has(item.code) ? `${obj} 내려놓았습니다.` : `${obj} 내려놓고 운동을 마쳤습니다.`;
-  else if (via === "roast") {
-    const roasted = after.items.find((i) => i.code === ROAST_TO[item.code])?.name;
-    head = roasted ? `${obj} 구워 ${roasted}${eulReul(roasted)} 만들었습니다.` : `${obj} 구웠습니다.`;
-  }
-  else if (via === "mix") {
-    // item 은 우유에 섞은 음료(커피 등) 쪽이다.
-    const mixed = after.items.find((i) => i.code === MIX_TO[item.code])?.name;
-    head = mixed
-      ? `우유에 ${obj} 섞어 ${mixed}${eulReul(mixed)} 만들었습니다.`
-      : `우유에 ${obj} 섞었습니다.`;
-  }
   else if (item.kind === "food" || item.kind === "treat")
     head = healed ? `${obj} 먹고 기운이 났습니다.` : `${obj} 먹었습니다.`;
   else if (item.kind === "medicine") {
@@ -336,7 +276,7 @@ export function usedItemLines(
 
   const notes: string[] = [];
   const flex =
-    via === "flex_unequip" || via === "gear_off" || via === "roast" || via === "mix"
+    via === "flex_unequip" || via === "gear_off"
       ? undefined
       : after.flex?.find((f) => f.code === item.code)?.text;
   if (flex) notes.push(flex);
@@ -454,6 +394,4 @@ export function raceCalls(
   return out;
 }
 
-
 export * from "./josa";
-export * from "./copy-cat";

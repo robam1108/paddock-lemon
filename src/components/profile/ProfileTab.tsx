@@ -13,12 +13,10 @@ export default function ProfileTab({ m }: { m: RecordModel }) {
   const {
     avatarBusy,
     avatarUrl,
-    catFavorite,
     clearLongPress,
     fileInputRef,
     flexStatus,
     isMobile,
-    me,
     onAvatarFileSelected,
     onPhotoClick,
     onPhotoPointerDown,
@@ -35,11 +33,8 @@ export default function ProfileTab({ m }: { m: RecordModel }) {
       {tab === "profile" && (
         <div className="flex flex-col gap-2">
           <ProfileCard
-            catLoved={catFavorite === state.username}
-            no={me.no}
             username={state.username}
             avatarUrl={avatarUrl}
-            cell={state.cell}
             status_message={state.status_message}
             age={state.age}
             heightCm={state.height_cm}
@@ -133,7 +128,7 @@ export default function ProfileTab({ m }: { m: RecordModel }) {
                 "에너지는 2시간마다 3, 1판마다 1씩 줄어듭니다.",
                 "도시락은 08:00 · 12:00 · 19:00에 지급됩니다.",
                 "회복 아이템은 소지품에서 직접 사용해야 반영됩니다.",
-                "에너지가 0이 되면 휴식 쿨다운이 시작됩니다. 휴식 중에는 게임·미션·탐험을 할 수 없습니다.",
+                "에너지가 0이 되면 휴식 쿨다운이 시작됩니다. 휴식 중에는 게임을 할 수 없습니다.",
                 "휴식이 끝나면 에너지 80으로 돌아옵니다.",
                 "휴식 중에는 도시락이 지급되지 않습니다.",
               ].map((line, i) => (

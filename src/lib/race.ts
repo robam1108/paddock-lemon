@@ -1,4 +1,4 @@
-/* ---------------- 경마장 (Arena) ----------------
+/* ---------------- 경마장 (아레나) ----------------
  * 서버 정본은 supabase/migrations/*_race.sql. 여기 있는 건 표시용 값과 타입뿐이다.
  */
 
@@ -191,7 +191,7 @@ export function dayLabel(day: string): string {
 }
 
 export function raceTitle(r: { day: string; no: number; is_test: boolean }): string {
-  return r.is_test ? "테스트 경주" : `${dayLabel(r.day)} 제${r.no}경주`;
+  return r.is_test ? "연습 경주" :`${dayLabel(r.day)} 제${r.no}경주`;
 }
 
 /** 마감까지 남은 시간 "2:03:15" / "4:05" */

@@ -7,7 +7,7 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from "react";
-import { itemAction, MILK, type InventoryItem, type PlayerState } from "@/lib/game";
+import { itemAction, type InventoryItem, type PlayerState } from "@/lib/game";
 import { usedItemLines, type UsedVia } from "@/lib/copy";
 import { GEAR } from "@/lib/gear";
 
@@ -19,20 +19,18 @@ export type StoreRpc = (
 ) => Promise<PlayerState | null>;
 
 /**
- * 소지품 쓰기 · 착용 · 굽기 · 섞기, 상점 사고팔기, 사진 변경.
+ * 소지품 쓰기 · 착용, 상점 사고팔기, 사진 변경.
  * 확인 창(pendingUse · pendingShare)과 결과 팝업(usedPopup · radioOpen) 상태도 여기서 들고 있다.
  */
 export function useItemActions({
   state,
   stateRef,
   callStoreRpc,
-  reloadRoster,
   setNotice,
 }: {
   state: PlayerState;
   stateRef: MutableRefObject<PlayerState>;
   callStoreRpc: StoreRpc;
-  reloadRoster: () => void;
   setNotice: Dispatch<SetStateAction<string | null>>;
 }) {
   // 사용 시 효과가 버려지는 아이템을 쓰기 전 확인
@@ -96,26 +94,6 @@ export function useItemActions({
   const doFlexEquip = useCallback(
     (code: string) => runWithPopup("flex_equip", "flex_equip", code),
     [runWithPopup],
-  );
-
-
-  /** 라이터로 생고구마를 굽는다. 라이터는 닳지 않는다. */
-  const doRoast = useCallback(
-    (code: string) => runWithPopup("roast_item", "roast", code),
-    [runWithPopup],
-  );
-
-  /** 우유에 커피·아이스 커피·루이보스티를 섞는다. 팝업은 섞은 음료(drink) 쪽 이름으로 쓴다. */
-  const doMix = useCallback(
-    async (drink: string) => {
-      const before = stateRef.current;
-      const item = before.items.find((i) => i.code === drink);
-      const after = await callStoreRpc("mix_item", { p_code: MILK, p_with: drink }, (message) =>
-        setUsedPopup({ lines: [message], notes: [] }),
-      );
-      if (after && item) setUsedPopup(usedItemLines(item, "mix", before, after));
-    },
-    [callStoreRpc, stateRef],
   );
 
   const doFlexUnequip = useCallback(
@@ -183,19 +161,17 @@ export function useItemActions({
     ],
   );
 
-  /** 함께 쓸 수 있는 음료·간식이면 먼저 혼자/함께를 묻는다. 명단을 다시 읽어
-   *  그 사이 휴식에 들어간 사람을 목록에서 뺀다. */
+  /** 함께 쓸 수 있는 음료·간식이면 먼저 혼자/함께를 묻는다. */
   const onUseItem = useCallback(
     (code: string) => {
       const item = state.items.find((i) => i.code === code);
       if (item?.shareable) {
         setPendingShare(item);
-        reloadRoster();
         return;
       }
       applyItem(code);
     },
-    [state.items, applyItem, reloadRoster],
+    [state.items, applyItem],
   );
 
   const onSellItem = useCallback(
@@ -238,8 +214,6 @@ export function useItemActions({
     doUseItem,
     doUseTogether,
     doUnequip,
-    doRoast,
-    doMix,
     applyItem,
     onUseItem,
     onSellItem,

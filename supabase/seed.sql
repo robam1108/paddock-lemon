@@ -1,24 +1,15 @@
 -- seed — `supabase db reset` 이 마이그레이션 뒤에 넣는 기본 데이터.
 --
 --   · item_defs   아이템 카탈로그(이름 · 설명 · 가격 · 효과 · 프로필 표시 문구)
---   · labor_defs  일일 미션 보상표(클라이언트에 나가지 않는다 — RLS 정책 없음)
 --   · race_horses 경주마 20두(능력치 · 소개)
 --   · 단일 행 테이블과 로컬 데모 계정
 --
 -- 아이템을 고칠 때는 이 파일의 행을 고친다. 운영 DB 에는 새 마이그레이션으로
 -- update 문을 추가한다(이 파일은 로컬 · 데모 초기화용이다).
 
-
-
 INSERT INTO public.item_defs (code, name, kind, grade, emoji, heal, plays, ward_cut, win_double, buy_price, sell_price, tradable, description, sort_order, flex_kind, flex_hours, flex_text, flex_text_gift, flex_text_with, uses, stake_bonus) VALUES
 	('bread', '빵', 'food', 'common', '🍞', 12, 0, 0, 0, 16, 7, true, '겉은 딱딱하고 속은 퍼석하다. 그래도 배는 찬다.', 11, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('ration_bar', '압축 비스킷', 'food', 'uncommon', '🍪', 16, 2, 0, 0, 26, 11, true, '한 입에 하루치 열량이 들어 있다고 적혀 있다.', 21, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('sweet_potato_chestnut', '밤고구마', 'food', 'common', '🍠', 20, 0, 0, 0, NULL, NULL, true, '밭 귀퉁이에서 챙겨 온 것. 날로 씹어도 퍽퍽하게 달다.', 14, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('sweet_potato_pumpkin', '호박고구마', 'food', 'common', '🍠', 0, 3, 0, 0, NULL, NULL, true, '속이 노랗다. 날로는 그냥 그렇다. 불만 있으면 얘기가 달라진다.', 15, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('fish_mackerel', '고등어', 'food', 'common', '🐟', 20, 0, 0, 0, NULL, NULL, true, '그물 바닥에서 아직 퍼덕이던 놈이다. 이걸 좋아하는 녀석이 있다.', 23, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('fish_horse_mackerel', '전갱이', 'food', 'common', '🐟', 0, 3, 0, 0, NULL, NULL, true, '손바닥만 한 게 떼로 올라온다. 이걸 좋아하는 녀석이 있다.', 24, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('iced_latte', '아이스 카페라떼', 'food', 'rare', '🧋', 40, 7, 0, 0, NULL, NULL, true, '얼음 위로 우유가 천천히 퍼진다. 한 모금이면 머리가 맑아진다.', 29, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('milk_tea', '밀크티', 'food', 'rare', '🍵', 40, 7, 0, 0, NULL, NULL, true, '붉은 차에 우유를 섞어 부드럽게 우렸다. 마시고 나면 한동안 몸이 따뜻하다.', 32, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('lunchbox', '도시락', 'food', 'common', '🍱', 13, 0, 0, 0, NULL, 8, true, '정해진 시각에 지급되는 한 끼.', 10, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('porridge', '흰죽', 'food', 'common', '🥣', 8, 0, 0, 0, 11, 5, true, '속이 편한 담백한 죽.', 12, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('canned', '고열량 통조림', 'food', 'uncommon', '🥫', 24, 3, 0, 0, 39, 17, true, '빽빽하게 눌러 담은 든든한 통조림.', 20, NULL, 0, NULL, NULL, NULL, 1, 0),
@@ -64,7 +55,6 @@ INSERT INTO public.item_defs (code, name, kind, grade, emoji, heal, plays, ward_
 	('gukbap', '국밥', 'treat', 'epic', '🍲', 8, 0, 0, 0, 200, 74, true, '뚝배기째 끓어오르는 국밥. 한 그릇이면 속이 든든하다.', 746, 'consume', 3, '뜨끈한 국밥을 먹고 이마에 땀이 맺혀 있다', '누군가에게 받은 국밥을 먹고 이마에 땀이 맺혀 있다', NULL, 1, 0),
 	('cola', '콜라', 'treat', 'epic', '🥤', 6, 0, 0, 0, 150, 60, true, '병뚜껑을 따는 소리가 청량하다.', 741, 'consume', 3, '콜라 뚜껑 따는 소리가 청량하다', '누군가에게 받은 콜라를 시원하게 땄다', NULL, 1, 0),
 	('grilled_eel', '장어구이', 'treat', 'epic', '🐟', 10, 0, 0, 0, 220, 84, true, '숯불에 굽고 양념을 덧발랐다.', 747, 'consume', 3, '장어구이를 먹고 기운이 차오른다', '누군가에게 받은 장어구이를 먹고 기운이 차오른다', NULL, 1, 0),
-	('churu', '츄르', 'treat', 'common', '🐾', 0, 0, 0, 0, 50, NULL, true, '짜 먹이는 고양이 간식. 친해지고 싶은 고양이가 있다면 필수품.', 790, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('clover', '네잎클로버', 'charm', 'epic', '🍀', 0, 0, 0, 0, 300, NULL, false, '행운이 온다고들 한다. 6시간 동안 판돈 +15.', 1210, NULL, 6, '행운을 기대하듯 네잎클로버를 만지작거린다', '누군가에게 받은 네잎클로버를 행운을 기대하듯 만지작거린다', NULL, 1, 15),
 	('lighter_old', '낡은 라이터', 'luxury', 'common', '🔥', 0, 0, 0, 0, 60, 21, true, '몇 번을 켜야 붙는다. 그래도 남의 것이 아니다.', 510, 'wear', 0, '낡은 라이터를 만지작거린다', '누군가에게 받은 낡은 라이터를 만지작거린다', NULL, 1, 0),
 	('ring_cheap', '싸구려 반지', 'luxury', 'common', '💍', 0, 0, 0, 0, 55, 19, true, '도금이 벗겨졌다. 사연은 벗겨지지 않았다.', 511, 'wear', 0, '도금이 벗겨진 반지를 끼고 있다', '누군가에게 받은 싸구려 반지를 끼고 있다', NULL, 1, 0),
@@ -74,11 +64,7 @@ INSERT INTO public.item_defs (code, name, kind, grade, emoji, heal, plays, ward_
 	('light_padding', '경량패딩', 'luxury', 'uncommon', '🧥', 0, 0, 0, 0, 150, 55, true, '얇지만 따뜻하다. 접으면 주먹만 해진다.', 524, 'wear', 0, '경량패딩 지퍼를 턱밑까지 올리고 있다', '누군가에게 받은 경량패딩을 걸쳐 입고 있다', NULL, 1, 0),
 	('lighter_au', '금장 라이터', 'luxury', 'rare', '🔥', 0, 0, 0, 0, 270, 95, true, '불빛보다 금테가 먼저 눈에 들어온다.', 530, 'wear', 0, '금장 라이터를 굴리고 있다', '누군가에게 받은 금장 라이터를 굴리고 있다', NULL, 1, 0),
 	('ring_gem', '보석 반지', 'luxury', 'rare', '💎', 0, 0, 0, 0, 380, 133, true, '진짜인지 묻는 사람은 살 마음이 없는 사람이다.', 532, 'wear', 0, '보석 반지를 끼고 있다', '누군가에게 받은 보석 반지를 끼고 있다', NULL, 1, 0),
-	('feather', '깃털', 'gift', 'common', '🐦', 0, 0, 0, 0, NULL, NULL, false, '고양이가 물어다 놓은 작은 깃털. 바람결을 기억한다.', 1310, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('toy_mouse', '장난감 쥐', 'gift', 'common', '🐭', 0, 0, 0, 0, NULL, NULL, false, '고양이가 물어다 놓은 천 쥐. 실밥이 조금 풀렸다.', 1311, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('butterfly', '나비', 'gift', 'common', '🪲', 0, 0, 0, 0, NULL, NULL, false, '고양이가 데려온 나비. 손등에 앉아 날개를 접었다 편다.', 1312, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('heattech', '히트텍', 'luxury', 'uncommon', '🧥', 0, 0, 0, 0, 100, 40, true, '추운 날씨에 꼭 필요한 히트텍.', 522, 'wear', 0, '딱 맞춰 입은 히트텍 덕분에 몸이 따뜻하다', '누군가에게 받은 히트텍 덕분에 몸이 따뜻하다', NULL, 1, 0),
-	('roast_fish_mackerel', '구운 고등어', 'food', 'uncommon', '🐟', 30, 0, 0, 0, NULL, NULL, true, '기름이 껍질 위에서 튄다. 냄새가 복도 끝까지 간다.', 25, NULL, 0, NULL, NULL, '누군가와 구운 고등어를 나눠 먹어 손에서 비린내가 가시지 않는다', 1, 0),
 	('booze_home', '막걸리', 'liquor', 'common', '🫙', 0, 0, 0, 0, 48, 17, true, '뽀얗게 흔들어 마시는 술.', 210, 'consume', 3, '막걸리 냄새를 감추지 못하고 있다', '누군가에게 받은 막걸리 냄새를 감추지 못하고 있다', '누군가와 함께 막걸리를 마셔 술 냄새를 감추지 못하고 있다', 1, 0),
 	('booze_beer', '병맥주', 'liquor', 'uncommon', '🍺', 0, 0, 0, 0, 115, 40, true, '미지근하다. 그래도 거품은 남아 있다.', 221, 'consume', 6, '미지근하고 텁텁한 맥주 냄새가 난다', '누군가에게 받은 미지근하고 텁텁한 맥주 냄새가 난다', '누군가와 함께 병맥주를 마셔 텁텁한 맥주 냄새가 난다', 1, 0),
 	('soju', '소주', 'liquor', 'uncommon', '🍶', 0, 0, 0, 0, 130, 46, true, '초록 병. 몇 병 남았는지가 중요하다.', 222, 'consume', 6, '소주 특유의 쓴 알코올 냄새가 난다', '누군가에게 받은 소주를 마셨는지 쓴 알코올 냄새가 난다', '누군가와 함께 소주를 마셔 쓴 알코올 냄새가 난다', 1, 0),
@@ -95,15 +81,10 @@ INSERT INTO public.item_defs (code, name, kind, grade, emoji, heal, plays, ward_
 	('screwdriver', '드라이버', 'tool', 'rare', '🪛', 0, 0, 0, 0, 300, NULL, true, '공방 공구함에 늘 하나씩은 모자란 그것.', 834, 'wear', 0, '드라이버로 이것저것 조이고 다닌다', '누군가에게 받은 드라이버로 이것저것 조이고 다닌다', NULL, 1, 0),
 	('tool_set', '공구 세트', 'tool', 'epic', '🔪', 0, 0, 0, 0, 510, NULL, true, '필요한 건 다 들어 있는 접이식 공구함.', 840, 'wear', 0, '공구 세트를 들고 다니며 고칠 것을 찾는다', '누군가에게 받은 공구 세트를 들고 다닌다', NULL, 1, 0),
 	('multitool', '멀티툴', 'tool', 'epic', '🗡️', 0, 0, 0, 0, 580, NULL, true, '펜치, 드라이버, 병따개가 한 손에.', 841, 'wear', 0, '멀티툴을 손안에서 여닫는다', '누군가에게 받은 멀티툴을 만지작거린다', NULL, 1, 0),
-	('roast_potato_chestnut', '구운 밤고구마', 'food', 'uncommon', '🍠', 30, 0, 0, 0, NULL, NULL, true, '껍질이 까맣게 탔다. 쪼개면 김이 오른다. 혼자 먹기엔 냄새가 너무 퍼진다.', 16, NULL, 0, NULL, NULL, '누군가와 구운 밤고구마를 나눠 먹어 입가에 검댕이 묻어 있다', 1, 0),
-	('roast_fish_horse_mackerel', '구운 전갱이', 'food', 'uncommon', '🐟', 0, 5, 0, 0, NULL, NULL, true, '바삭하게 구워 가시째 씹힌다. 혼자 뜯기엔 아깝다.', 26, NULL, 0, NULL, NULL, '누군가와 구운 전갱이를 뜯어 먹어 입가에 가시 하나가 붙어 있다', 1, 0),
 	('booze_fruit', '과일주', 'liquor', 'uncommon', '🍶', 0, 0, 0, 0, 100, 35, true, '달다. 그 단맛이 뒤끝을 가려 준다.', 220, 'consume', 6, '달큰한 과일주의 냄새가 난다', '누군가에게 받은 과일주의 달큰한 냄새가 난다', '누군가와 함께 과일주를 마셔 달큰한 냄새가 난다', 1, 0),
 	('booze_import', '수입주', 'liquor', 'rare', '🍾', 0, 0, 0, 0, 230, 81, true, '라벨을 읽을 수 있는 사람이 몇 없다.', 230, 'consume', 12, '낯설고 이국적인 술향에 취해 있다', '누군가에게 받은, 낯설고 이국적인 술향에 취해 있다', '누군가와 함께 수입주를 마셔 낯설고 이국적인 술향에 취해 있다', 1, 0),
 	('whisky', '위스키', 'liquor', 'rare', '🥃', 0, 0, 0, 0, 330, 116, true, '한 모금이면 목이 타고, 두 모금이면 잊힌다.', 231, 'consume', 18, '묵직하게 타오른 목구멍 때문인지 말이 다소 느려졌다', '누군가에게 받은 위스키를 마셨는지 말이 느리다', '누군가와 함께 위스키를 마셔 말이 다소 느려졌다', 1, 0),
 	('whisky_old', '오래된 위스키', 'liquor', 'epic', '🥃', 0, 0, 0, 0, 580, 203, true, '병에 앉은 먼지까지 값에 포함되어 있다.', 240, 'consume', 30, '세월이 축적된 오크 향이 전신에 배어 있다', '누군가에게 받은, 오래된 위스키를 마셔 오크향을 풍긴다.', '누군가와 함께 오래된 위스키를 마셔 오크 향이 전신에 배어 있다', 1, 0),
-	('emg_ration', '간식 꾸러미', 'food', 'common', '🍘', 15, 0, 0, 0, NULL, NULL, true, '누군가 숨겨 놓은 간식 꾸러미다. 언제부터 있었는지는 알 수 없다.', 13, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('milk', '우유', 'food', 'common', '🥛', 15, 0, 0, 0, NULL, NULL, true, '목장에서 짜 온 그대로다. 아직 미지근하다. 이걸 좋아하는 녀석이 있다.', 27, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('cafe_latte', '카페라떼', 'food', 'rare', '☕', 40, 7, 0, 0, NULL, NULL, true, '우유에 커피를 부었다. 이 섬에서 이 정도면 사치다.', 28, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('sedative', '허브차 티백', 'medicine', 'common', '💊', 0, 0, 3, 0, 24, 10, true, '마음을 가라앉힌다. 휴식 3시간 단축.', 311, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('bandage', '파스', 'medicine', 'common', '🩹', 9, 0, 0, 0, 11, 4, true, '제대로 붙이면 하루는 버틴다.', 312, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('remedy', '에너지 드링크', 'medicine', 'uncommon', '💉', 20, 0, 0, 0, 23, 10, true, '한 캔이면 하루는 더 버틴다.', 320, NULL, 0, NULL, NULL, NULL, 1, 0),
@@ -115,34 +96,7 @@ INSERT INTO public.item_defs (code, name, kind, grade, emoji, heal, plays, ward_
 	('cure_spec', '특제 보양식', 'medicine', 'epic', '🧬', 48, 0, 0, 0, 49, 21, true, '무엇으로 만들었는지는 비밀이다. 효과는 확실하다.', 340, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('discharge', '휴식 해제권', 'medicine', 'epic', '📄', 0, 0, 48, 0, 300, 126, true, '쓰면 휴식이 바로 끝난다.', 341, NULL, 0, NULL, NULL, NULL, 1, 0),
 	('transfuse', '홍삼 스틱', 'medicine', 'epic', '🩺', 62, 0, 0, 0, 63, 26, true, '쓴맛 뒤에 힘이 난다.', 342, NULL, 0, NULL, NULL, NULL, 1, 0),
-	('soap_scent', '향기 비누', 'luxury', 'uncommon', '🧼', 0, 0, 0, 0, 100, 48, true, '흔한 비누와는 다르다. 거품에서 좋은 냄새가 난다.', 523, 'consume', 6, '은은한 비누 향이 살결에 남아 있다', '누군가에게 받은 비누로 씻었는지 은은한 향이 살결에 남아 있다', NULL, 1, 0),
-	('roast_potato_pumpkin', '구운 호박고구마', 'food', 'uncommon', '🍠', 0, 5, 0, 0, NULL, NULL, true, '꿀이 껍질 밖으로 배어 나왔다. 나눠 먹는 게 예의다.', 17, NULL, 0, NULL, NULL, '누군가와 구운 호박고구마를 나눠 먹어 손끝이 끈적하다', 1, 0);
-
-INSERT INTO public.labor_defs (code, tier, pay_min, pay_max, night) VALUES
-	('laundry', 1, 32, 45, false),
-	('serving', 1, 32, 45, false),
-	('corridor', 1, 32, 45, false),
-	('supply', 1, 32, 45, false),
-	('sewing', 2, 48, 70, false),
-	('kitchen', 2, 48, 70, false),
-	('carpentry', 2, 48, 70, false),
-	('farm', 2, 48, 70, false),
-	('unload', 3, 72, 95, false),
-	('pens', 3, 72, 95, false),
-	('saltern', 3, 72, 95, false),
-	('generator', 3, 72, 95, false),
-	('quarry', 4, 112, 150, false),
-	('seawall', 4, 112, 150, false),
-	('furnace', 4, 112, 150, false),
-	('sewer', 4, 112, 150, false),
-	('fishing', 4, 100, 150, true),
-	('coldstore', 4, 105, 165, true),
-	('boiler', 4, 110, 180, true),
-	('nets', 4, 120, 195, true),
-	('septic', 5, 140, 230, true),
-	('latrine', 5, 150, 250, true),
-	('lighthouse', 5, 160, 275, true),
-	('pump', 5, 175, 300, true);
+	('soap_scent', '향기 비누', 'luxury', 'uncommon', '🧼', 0, 0, 0, 0, 100, 48, true, '흔한 비누와는 다르다. 거품에서 좋은 냄새가 난다.', 523, 'consume', 6, '은은한 비누 향이 살결에 남아 있다', '누군가에게 받은 비누로 씻었는지 은은한 향이 살결에 남아 있다', NULL, 1, 0);
 
 INSERT INTO public.race_horses (id, name, coat, face, legs, sex, age, weight, spd, sta, acc, gut, stb, style, dist, wet, bio) VALUES
 	(1, '미스터파크', '흑모', '별', '없음', '수', 4, 498, 92, 78, 88, 70, 72, 1, 'M', 0, '출발 신호와 동시에 튀어 나가는 선행마. 초반 주도권을 놓친 적이 드물다.'),
@@ -165,14 +119,6 @@ INSERT INTO public.race_horses (id, name, coat, face, legs, sex, age, weight, sp
 	(18, '와일드파이어', '적다모', '백면', '없음', '암', 3, 456, 83, 66, 86, 64, 52, 1, 'M', 0, '번지듯 치고 나가는 선행 암말. 컨디션 타는 게 흠.'),
 	(19, '라스트댄스', '흑갈색', '작', '오른앞발 흰', '거세', 6, 500, 73, 78, 68, 92, 68, 4, 'M', 0, '결승선 앞에서만 진심인 말. 이름값을 하는 날이 꼭 온다.'),
 	(20, '럭키레터', '밤색', '별', '없음', '암', 5, 462, 75, 75, 75, 75, 74, 2, 'M', 1, '평범한 능력치, 비범한 운. 배당표 아래쪽에서 종종 편지를 보낸다.');
-
-
-
--- 고양이에게 가장 사랑받는 사람(단일 행). cat_favorite_refresh 가 갱신한다.
-insert into public.cat_favorite (id) values (1) on conflict (id) do nothing;
-
--- 이번 주 룸 재배치는 이미 끝난 것으로 둔다(첫 접속에 바로 재배치되지 않게).
-insert into public.cell_rotations (week_at) values (app.cell_week_kst()) on conflict (week_at) do nothing;
 
 -- ── 로컬 데모 계정 ───────────────────────────────────────────────────
 -- 로컬 개발 전용 테스트 계정이다. 운영 DB 에서는 관리자 화면이나

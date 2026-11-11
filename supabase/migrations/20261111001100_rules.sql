@@ -97,9 +97,6 @@ CREATE FUNCTION public.get_rules() RETURNS jsonb
       'mult',  (select jsonb_object_agg(n, app.keno_mult(n))
                   from generate_series(2, app.keno_picks()) n)),
     'clover_stake',    (select stake_bonus from public.item_defs where code = 'clover'),
-    'cat', jsonb_build_object(
-      'bird_stake', app.cat_bird_stake(),
-      'bird_plays', app.cat_bird_plays()),
     'race', jsonb_build_object(
       'public',  app.race_public(),
       'min_bet', app.race_min_bet(),
