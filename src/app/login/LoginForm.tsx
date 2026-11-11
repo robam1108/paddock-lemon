@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { usernameToEmail, validatePassword, validateUsername } from "@/lib/auth";
+import { toKoreanError } from "@/lib/errors";
 import MonoLabel from "@/components/ui/MonoLabel";
 
 export default function LoginForm() {
@@ -12,6 +13,37 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // 게스트 체험 — 서버(app.guest_open)가 열어 둔 경우에만 버튼을 보인다.
+  const [guest, setGuest] = useState<{ open: boolean; ttl_hours: number } | null>(null);
+
+  useEffect(() => {
+    createClient()
+      .rpc("guest_status")
+      .then(({ data }) => setGuest((data as { open: boolean; ttl_hours: number } | null) ?? null));
+  }, []);
+
+  /** 익명 로그인. 아이디(guest + 숫자)는 서버 트리거가 정한다. */
+  async function handleGuest() {
+    setError(null);
+    setBusy(true);
+    try {
+      const { error: guestError } = await createClient().auth.signInAnonymously();
+      if (guestError) {
+        setError(
+          /anonymous sign-ins are disabled/i.test(guestError.message)
+            ? "지금은 게스트 체험을 열어 두지 않았습니다."
+            : toKoreanError(guestError.message),
+        );
+        return;
+      }
+      router.replace("/play");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "게스트 입장 중 오류가 났습니다. 다시 시도해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,6 +119,22 @@ export default function LoginForm() {
       >
         {busy ? "확인 중" : "로그인"}
       </button>
+
+      {guest?.open && (
+        <>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleGuest}
+            className="state-fade title-19 border-brass-line mt-2 min-h-12 border bg-brass-fill text-fg-hi disabled:text-fg-low"
+          >
+            로그인 없이 체험하기
+          </button>
+          <p className="mono-13 text-fg-low mt-1">
+            게스트 계정은 {guest.ttl_hours}시간 뒤 기록과 함께 지워집니다.
+          </p>
+        </>
+      )}
     </form>
   );
 }

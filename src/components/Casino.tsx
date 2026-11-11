@@ -37,6 +37,7 @@ import Labor from "./Labor";
 import Search from "./Search";
 import Exchange from "./Exchange";
 import CasualTab from "./casino/CasualTab";
+import GuestNote from "./casino/GuestNote";
 import TabRail from "./ui/TabRail";
 import BlockedRow from "./ui/BlockedRow";
 import Texture from "./ui/Texture";
@@ -63,11 +64,14 @@ export default function Casino({
   userId,
   initialState,
   rules,
+  guestUntil,
 }: {
   userId: string;
   initialState: PlayerState;
   /** 서버 get_rules() — 자식이 그리기 전에 규칙 저장소에 넣는다 */
   rules: Rules;
+  /** 게스트 계정이면 지워지는 시각 */
+  guestUntil?: string | null;
 }) {
   setRules(rules);
   const router = useRouter();
@@ -424,6 +428,8 @@ export default function Casino({
             onClose={() => setUsedPopup(null)}
           />
         )}
+
+        {guestUntil && <GuestNote expiresAt={guestUntil} />}
 
         <TerminalHeader
           state={state}

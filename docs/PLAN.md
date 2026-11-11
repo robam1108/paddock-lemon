@@ -288,11 +288,19 @@ git grep -nE '병동|가축|배급소|밀거래|수감|죄수|교정|무간|흑�
 
 ### P5. 데모와 시연 자료 (1\~2일)
 
-- [ ] `guest_login` 게스트 체험 RPC(임시 계정, cron으로 코인 주기 초기화).
-- [ ] 데모용 별도 Supabase 프로젝트와 Vercel 배포, 환경변수 문서화.
-- [ ] 경주 중계 GIF와 스크린샷.
+- [x] 게스트 체험(임시 계정). ~~`guest_login` RPC + cron 코인 초기화~~ → **변경(2026-11-11)**: SQL 함수는 인증 세션을 만들 수 없으므로 Supabase **익명 로그인**(`signInAnonymously`)을 쓴다. 아이디는 클라이언트가 아니라 `auth.users` BEFORE INSERT 트리거가 `guest` + 숫자 6자리로 발급하고, 게스트 계정은 24시간 뒤 cron 이 계정째 지운다(그래서 코인 초기화가 따로 필요 없다). 스위치는 DB `app.guest_open()` + Auth 의 Anonymous sign-ins 설정 두 곳.
+- [ ] 데모용 별도 Supabase 프로젝트와 Vercel 배포, 환경변수 문서화. — 문서화는 끝(`docs/deploy.md`). 프로젝트 생성 · 배포는 저장소 주인이 직접 해야 한다.
+- [x] 경주 중계 GIF와 스크린샷.
 
 완료 기준: 데모 URL에서 로그인 없이 체험해 경마 1경주를 끝까지 볼 수 있다.
+> P5 결과(2026-11-11) — **완료 기준 중 "데모 URL"만 남았다**(배포는 사용자 몫). 같은 흐름은 로컬 E2E 로 확인했다.
+>
+> - 게스트: 새 마이그레이션 `20261111003000_guest.sql` — `app.guest_before_insert`(익명 사용자의 아이디를 서버가 `guest######` 로 덮어씀, 클라이언트가 보낸 이름은 무시), `public.guest_status()`(로그인 화면 버튼 · 게스트 안내용), `app.guest_cleanup()` + cron `guest-cleanup`(매시 17분, 24시간 지난 익명 계정 삭제 — FK 로 기록까지), 게스트의 Storage 업로드를 막는 제한(restrictive) 정책. 기존 함수는 하나도 다시 정의하지 않았다. 로컬 `config.toml` 에서 익명 로그인을 켰다.
+> - 화면: 로그인 화면에 **로그인 없이 체험하기**(서버가 열어 둔 경우에만), 게스트에게 지워지는 시각(KST) 안내 줄.
+> - 검증: pgTAP `04_guest.sql` 10건(아이디 발급 · admin 이름 무시 · 업로드 차단 · 기한 삭제), Playwright 에 "게스트: 로그인 없이 체험 → 경마 1경주를 끝까지" 추가(2건 통과). 브라우저로 게스트 입장 · 안내 팝업 확인.
+> - 시연 자료: `docs/media/` — login · casual-roulette · race-card · race-result(PNG), race-replay.gif(실황 중계 약 25초). `playwright.capture.config.ts` 로 다시 만든다(ffmpeg 없이 gifenc 로 인코딩).
+> - 안내 그림: `public/guide/*.svg` placeholder 를 직접 그린 장소 안내도 · 하루 일정표로 바꿨다(문단의 장소 · 시각 그대로).
+> - 배포 문서: `docs/deploy.md` — 새 Supabase 프로젝트, `db push --remote=URL --include-seed`(값 없는 `--remote` 는 링크된 운영 원본을 가리키므로 금지), 공개된 seed 관리자 비밀번호 즉시 변경, 익명 로그인 켜기, Vercel 환경 변수 두 개.
 
 ### P6. 문서화와 공개 (2\~3일)
 
@@ -368,11 +376,10 @@ P0의 체크리스트를 하나씩 처리하고, 완료 기준을 확인한 뒤 
 - E2E 는 로컬 DB 를 실제로 바꾼다(demo01 코인 · 에너지 보정, 경주 no=90 편성 후 삭제, 마권 · 기록 1건).
 - CI 는 GitHub 에서 통과 확인(runner 는 psql 로, 로컬 Windows 는 DB 컨테이너 안의 psql 로 붙는다).
 
-### P5. 데모와 시연 자료
-- `guest_login` 게스트 체험 RPC(임시 계정 발급, cron으로 코인 주기 초기화) — 새 마이그레이션 파일로.
-- 데모용 **새** Supabase 프로젝트 + Vercel 배포는 사용자 결정·로그인이 필요하다(계정 생성·키 입력은 사용자가 직접). `casino` 프로젝트는 쓰지 않는다.
-- 경주 중계 GIF·스크린샷, `public/guide/*.svg` placeholder를 실제 안내도로 교체할지 결정.
-- 커밋 `P5: 데모와 시연 자료`.
+### P5. 데모와 시연 자료 — 배포만 남음 (8절 P5 결과 참고)
+- 남은 일(사용자): `docs/deploy.md` 순서대로 새 Supabase 프로젝트 + Vercel 배포. `casino` 프로젝트는 쓰지 않는다. 배포 URL 이 생기면 게스트로 경마 1경주를 끝까지 보고 P5 를 닫는다.
+- 로컬 Supabase 는 Docker Desktop 이 떠 있어야 한다(꺼져 있으면 `db start` 가 실패한다).
+- 이번 마이그레이션(`20261111003000_guest.sql`)부터는 이미 커밋 · 푸시된 파일이므로, 고칠 일이 생기면 새 파일을 추가한다.
 
 ### P6. 문서화와 공개
 - README(아키텍처 mermaid, 로컬 실행), `docs/ops-log.md`(`_private/repair`에서 콘셉트 무관 10~15건), `docs/case-studies/` 4~6편(6절 후보), 용어표(DB 식별자 `hp`=에너지, `ward`=휴식, `cell`=룸, `petition`=피드백, 장소·미션 코드).

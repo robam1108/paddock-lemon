@@ -127,6 +127,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   NOT_A_PLAYER: "이 대결의 참가자가 아닙니다.",
   CELLS_FULL: "배정할 수 있는 빈 룸이 없습니다.",
   INVALID_REASON: "사유가 올바르지 않습니다.",
+  GUEST_CLOSED: "지금은 게스트 체험을 열어 두지 않았습니다.",
+  GUEST_FULL: "게스트 자리가 가득 찼습니다. 잠시 뒤 다시 시도해 주세요.",
 };
 
 /**

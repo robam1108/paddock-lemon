@@ -38,8 +38,8 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     photo: {
       src: "/guide/layout.svg",
       alt: "장소 안내도",
-      width: 1000,
-      height: 1071,
+      width: 640,
+      height: 820,
     },
     paragraphs: [
       "¹ 라운지 - 플레이어들이 머무는 공용 공간. 탐험 장소 중 하나입니다.",
@@ -62,7 +62,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
   {
     id: "schedule",
     label: "일정",
-    photo: { src: "/guide/schedule.svg", alt: "일정표", width: 1000, height: 1284 },
+    photo: { src: "/guide/schedule.svg", alt: "일정표", width: 640, height: 900 },
     photoPosition: "bottom",
     paragraphs: ["도시락 08:00 · 12:00 · 19:00 / 미션 13:00~19:00 / 경마 10:00 · 22:00 (KST)"],
   },

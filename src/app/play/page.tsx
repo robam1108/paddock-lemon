@@ -38,10 +38,13 @@ export default async function PlayPage() {
 
   if (!user) redirect("/login");
 
-  const [{ state, error }, rulesRes] = await Promise.all([
+  const [{ state, error }, rulesRes, guestRes] = await Promise.all([
     loadState(supabase),
     supabase.rpc("get_rules"),
+    // 게스트(익명 로그인)일 때만 지워지는 시각을 받는다.
+    user.is_anonymous ? supabase.rpc("guest_status") : Promise.resolve({ data: null }),
   ]);
+  const guestUntil = (guestRes.data as { expires_at: string | null } | null)?.expires_at ?? null;
 
   if (!state || !rulesRes.data) {
     const schemaMissing = /does not exist|schema cache|PGRST202/i.test(
@@ -76,5 +79,12 @@ export default async function PlayPage() {
     );
   }
 
-  return <Casino userId={user.id} initialState={state} rules={rulesRes.data as Rules} />;
+  return (
+    <Casino
+      userId={user.id}
+      initialState={state}
+      rules={rulesRes.data as Rules}
+      guestUntil={guestUntil}
+    />
+  );
 }
